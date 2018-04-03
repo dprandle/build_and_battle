@@ -117,7 +117,7 @@ bool InputMap::add_context(const Urho3D::StringHash & name, input_context * to_a
 	{
 		Pair<StringHash, input_context*> ins_pair;
 		ins_pair.first_ = StringHash(name);
-		ins_pair.second_ = ctxt;
+		ins_pair.second_ = to_add;
 		m_contexts.Insert(ins_pair);
 		return true;
 	}
@@ -226,10 +226,10 @@ void InputTranslator::release()
 void InputTranslator::handle_key_down(Urho3D::StringHash eventType, Urho3D::VariantMap& eventData)
 {
 	trigger_condition tc;
-	tc.key = int16_t(eventData["Key"].GetInt());
+	tc.key = int32_t(eventData["Key"].GetInt());
 	tc.mouse_button = 0;
-	int8_t qualifiers(eventData["Qualifiers"].GetInt());
-	int8_t mouse_buttons(eventData["Buttons"].GetInt());
+	int32_t qualifiers(eventData["Qualifiers"].GetInt());
+	int32_t mouse_buttons(eventData["Buttons"].GetInt());
 	
 	for (int i = m_context_stack.Size(); i > 0; --i)
 	{
@@ -250,8 +250,8 @@ void InputTranslator::handle_key_down(Urho3D::StringHash eventType, Urho3D::Vari
 			bool pass_mb_required((trig->mb_required & mouse_buttons) == trig->mb_required);
 
 			// Check the qualifier and mouse button allowed conditions
-			int8_t allowed_quals = trig->qual_required | trig->qual_allowed;
-			int8_t allowed_mb = trig->mb_required | trig->mb_allowed;
+			int32_t allowed_quals = trig->qual_required | trig->qual_allowed;
+			int32_t allowed_mb = trig->mb_required | trig->mb_allowed;
 			bool pass_qual_allowed(((allowed_quals & QUAL_ANY) == QUAL_ANY) || (qualifiers | allowed_quals) == allowed_quals);
 			bool pass_mb_allowed(((allowed_mb & MOUSEB_ANY) == MOUSEB_ANY) || ((mouse_buttons | allowed_mb) == allowed_mb));
 
@@ -292,10 +292,10 @@ bool InputTranslator::_trigger_already_active(input_action_trigger * trig)
 void InputTranslator::handle_key_up(Urho3D::StringHash eventType, Urho3D::VariantMap& eventData)
 {
 	trigger_condition tc;
-	tc.key = int16_t(eventData["Key"].GetInt());
+	tc.key = int32_t(eventData["Key"].GetInt());
 	tc.mouse_button = 0;
-	int8_t mouse_buttons = int8_t(eventData["Buttons"].GetInt());
-	int8_t qualifiers = int8_t(eventData["Qualifiers"].GetInt());
+	int32_t mouse_buttons = int32_t(eventData["Buttons"].GetInt());
+	int32_t qualifiers = int32_t(eventData["Qualifiers"].GetInt());
 
 	auto iter = active_triggers.Begin();
 	while (iter != active_triggers.End())
@@ -339,13 +339,13 @@ void InputTranslator::handle_mouse_down(Urho3D::StringHash eventType, Urho3D::Va
 	trigger_condition tc;
 	tc.key = 0;
 	tc.mouse_button = eventData["Button"].GetInt();
-	int8_t mouse_buttons = int8_t(eventData["Buttons"].GetInt());
-	int8_t qualifiers = int8_t(eventData["Qualifiers"].GetInt());
-	int8_t wheel = 0;
+	int32_t mouse_buttons = int32_t(eventData["Buttons"].GetInt());
+	int32_t qualifiers = int32_t(eventData["Qualifiers"].GetInt());
+	int32_t wheel = 0;
 	Vector2 norm_mdelta;
 
 	if (tc.mouse_button == MOUSEB_WHEEL)
-		wheel = int8_t(eventData["Wheel"].GetInt());
+		wheel = int32_t(eventData["Wheel"].GetInt());
 
 	if (tc.mouse_button == MOUSEB_MOVE)
 	{
@@ -374,8 +374,8 @@ void InputTranslator::handle_mouse_down(Urho3D::StringHash eventType, Urho3D::Va
 			bool pass_mb_required((trig->mb_required & mouse_buttons) == trig->mb_required);
 
 			// Check the qualifier and mouse button allowed conditions
-			int8_t allowed_quals = trig->qual_required | trig->qual_allowed;
-			int8_t allowed_mb = trig->mb_required | trig->mb_allowed | trig->condition.mouse_button;
+			int32_t allowed_quals = trig->qual_required | trig->qual_allowed;
+			int32_t allowed_mb = trig->mb_required | trig->mb_allowed | trig->condition.mouse_button;
 			bool pass_qual_allowed(((allowed_quals & QUAL_ANY) == QUAL_ANY) || (qualifiers | allowed_quals) == allowed_quals);
 			bool pass_mb_allowed(((allowed_mb & MOUSEB_ANY) == MOUSEB_ANY) || ((mouse_buttons | allowed_mb) == allowed_mb));
 
@@ -410,8 +410,8 @@ void InputTranslator::handle_mouse_up(Urho3D::StringHash eventType, Urho3D::Vari
 	trigger_condition tc;
 	tc.key = 0;
 	tc.mouse_button = eventData["Button"].GetInt();
-	int8_t mouse_buttons = int8_t(eventData["Buttons"].GetInt());
-	int8_t qualifiers = int8_t(eventData["Qualifiers"].GetInt());
+	int32_t mouse_buttons = int32_t(eventData["Buttons"].GetInt());
+	int32_t qualifiers = int32_t(eventData["Qualifiers"].GetInt());
 
 	auto iter = active_triggers.Begin();
 	while (iter != active_triggers.End())

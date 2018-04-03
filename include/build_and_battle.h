@@ -17,6 +17,7 @@ class Sprite;
 class EditorCameraController;
 class InputTranslator;
 class InputMap;
+struct input_context;
 
 const float TOUCH_SENSITIVITY = 2.0f;
 
@@ -41,6 +42,8 @@ private:
 
     void release();
 
+    void setup_global_keys(input_context * ctxt);
+
     void create_visuals();
 
     Urho3D::Engine * engine;
@@ -55,13 +58,7 @@ private:
 
     InputMap * input_map;
 
-    void handle_mouse_mode_request(Urho3D::StringHash event_type, Urho3D::VariantMap& event_data);
-
-    void handle_mouse_mode_change(Urho3D::StringHash event_type, Urho3D::VariantMap& event_data);
-
-    void handle_key_down(Urho3D::StringHash event_type, Urho3D::VariantMap& event_data);
-
-    void handle_key_up(Urho3D::StringHash event_type, Urho3D::VariantMap& event_data);
+    void handle_input_event(Urho3D::StringHash eventType, Urho3D::VariantMap& eventData);
 
     void handle_scene_update(Urho3D::StringHash event_type, Urho3D::VariantMap& event_data);
 

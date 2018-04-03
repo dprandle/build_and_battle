@@ -6,9 +6,9 @@
 #include <map>
 #include <vector>
 
-static const int16_t MOUSEB_MOVE = 32;
-static const int16_t MOUSEB_WHEEL = 64;
-static const int16_t MOUSEB_ANY = 128;
+static const int32_t MOUSEB_MOVE = 32;
+static const int32_t MOUSEB_WHEEL = 64;
+static const int32_t MOUSEB_ANY = 128;
 
 enum trigger_state
 {
@@ -20,10 +20,10 @@ union trigger_condition
 {
 	struct
 	{
-		int16_t key; // 0 is no key - if no key then mb_mask must be non-zero
-		int16_t mouse_button;
+		int32_t key; // 0 is no key - if no key then mb_mask must be non-zero
+		int32_t mouse_button;
 	};
-	int32_t lookup_key;
+	int64_t lookup_key;
 
 	bool operator==(const trigger_condition & rhs)
 	{
@@ -34,12 +34,12 @@ union trigger_condition
 struct input_action_trigger
 {
 	Urho3D::StringHash name;
-	int16_t trigger_state;
+	int32_t trigger_state;
 	trigger_condition condition; // Here for convenience
-	int16_t mb_required; // 0 is no button
-	int16_t qual_required; // 0 is no keyboard qualifier
-	int16_t mb_allowed; // If MOUSEB_ANY is included int the mouse_buttons, these mouse buttons will cause the state to end or not begin
-	int16_t qual_allowed; // Same thing as above with QUAL_ANY for key qualifiers
+	int32_t mb_required; // 0 is no button
+	int32_t qual_required; // 0 is no keyboard qualifier
+	int32_t mb_allowed; // If MOUSEB_ANY is included int the mouse_buttons, these mouse buttons will cause the state to end or not begin
+	int32_t qual_allowed; // Same thing as above with QUAL_ANY for key qualifiers
 
 	bool operator==(const input_action_trigger & rhs)
 	{
@@ -47,8 +47,8 @@ struct input_action_trigger
 	}
 };
 
-typedef std::multimap<int32_t, input_action_trigger*> trigger_map;
-typedef std::pair<std::multimap<int32_t, input_action_trigger*>::iterator,std::multimap<int32_t, input_action_trigger*>::iterator> trigger_range;
+typedef std::multimap<int64_t, input_action_trigger*> trigger_map;
+typedef std::pair<trigger_map::iterator,trigger_map::iterator> trigger_range;
 
 struct input_context
 {

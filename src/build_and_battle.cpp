@@ -52,8 +52,8 @@ Build_And_Battle::Build_And_Battle(Context* context)
 Build_And_Battle::~Build_And_Battle()
 {
     //delete engine;
-    delete input_translator;
-    delete camera_controller;
+//    delete input_translator;
+//    delete camera_controller;
     delete input_map;
 }
 
@@ -61,10 +61,11 @@ bool Build_And_Battle::init()
 {
     VariantMap params;
 
+    GetSubsystem<FileSystem>()->SetCurrentDir(GetSubsystem<FileSystem>()->GetProgramDir());
     params[EP_WINDOW_TITLE] = GetTypeName();
-    params[EP_LOG_NAME] = GetSubsystem<FileSystem>()->GetAppPreferencesDir("urho3d", "logs") + GetTypeName() + ".log";
+    params[EP_LOG_NAME] = GetTypeName() + ".log";
     params[EP_FULL_SCREEN] = false;
-    params[EP_HEADLESS] = false;
+    params[EP_WINDOW_RESIZABLE] = true;
     params[EP_SOUND] = true;
 
     // Register custom systems
@@ -81,9 +82,17 @@ bool Build_And_Battle::init()
     input_translator->init();
     camera_controller->init();
 
+
     SubscribeToEvent(E_SCENEUPDATE, URHO3D_HANDLER(Build_And_Battle, handle_scene_update));
+	SubscribeToEvent(E_INPUT_TRIGGER, URHO3D_HANDLER(Build_And_Battle, handle_input_event));
 
     create_visuals();
+
+    input_context* in_context = input_map->create_context("global_context");
+    camera_controller->setup_input_context(in_context);
+    input_translator->push_context(in_context);
+
+    setup_global_keys(in_context);
 
     return true;
 }
@@ -128,10 +137,6 @@ void Build_And_Battle::create_visuals()
     DebugHud* debugHud = engine->CreateDebugHud();
     debugHud->SetDefaultStyle(xmlFile);
 
-    Input * in = GetSubsystem<Input>();
-    in->SetMouseVisible(true);
-
-
     UI * usi = GetSubsystem<UI>();
     UIElement * root = usi->GetRoot();
     Button * btn = new Button(context_);
@@ -173,129 +178,131 @@ void Build_And_Battle::create_visuals()
     light->SetColor(Color(1.0f, 1.0f, 1.0f));
     light->SetSpecularIntensity(5.0f);
     light->SetBrightness(1.0f);
+
+    // Create StaticModelGroups in the scene
+    StaticModelGroup* lastGroup = nullptr;
+    Material* grass_tile = cache->GetResource<Material>("Materials/Tiles/Grass.xml");
+    // Texture2D * diff_grass =
+    // cache->GetResource<Texture2D>("Textures/Tiles/diffuseGrass.png");
+    // Texture2D * norm_grass =
+    // cache->GetResource<Texture2D>("Textures/Tiles/normalGrass.png");
+    // grass_tile->SetTexture(Urho3D::TU_DIFFUSE, diff_grass);
+    // grass_tile->SetTexture(Urho3D::TU_NORMAL, norm_grass);
+    // grass_tile->SetTechnique(0,
+    // cache->GetResource<Technique>("Techniques/DiffNormal.xml"));
+
+    for (int y = -50; y < 50; ++y) {
+        for (int x = -50; x < 50; ++x) {
+            if (!lastGroup || lastGroup->GetNumInstanceNodes() >= 25 * 25) {
+                Node* tile_group_node = scene->CreateChild("Grass_Tile_Group");
+                lastGroup = tile_group_node->CreateComponent<StaticModelGroup>();
+                lastGroup->SetModel(
+                    cache->GetResource<Model>("Models/Tiles/Grass.mdl"));
+                lastGroup->SetMaterial(grass_tile);
+            }
+
+            Node* tile_node = scene->CreateChild("Grass_Tile");
+            tile_node->SetPosition(Vector3(x, y, 0));
+            tile_node->SetScale(0.5f);
+            tile_node->SetRotation(Quaternion(90.0f, Vector3(1.0f, 0.0f, 0.0f)));
+            lastGroup->AddInstanceNode(tile_node);
+        }
+    }
 }
 
-
-void Build_And_Battle::handle_key_up(StringHash /*eventType*/, VariantMap& eventData)
+void Build_And_Battle::setup_global_keys(input_context * ctxt)
 {
-    using namespace KeyUp;
+    input_context* input_ctxt = input_map->get_context(StringHash("global_context"));
 
-    int key = eventData[P_KEY].GetInt();
+    if (ctxt == nullptr)
+        return;
+    
+    trigger_condition tc;
+    input_action_trigger * it = nullptr;
 
-    // Close console (if open) or exit when ESC is pressed
-    if (key == KEY_ESCAPE) 
+	tc.key = KEY_ESCAPE;
+	tc.mouse_button = 0;
+
+	it = ctxt->create_trigger(tc);
+ 	it->name = "CloseWindow";
+	it->trigger_state = t_end;
+	it->mb_required = 0;
+	it->mb_allowed = MOUSEB_ANY;
+	it->qual_required = 0;
+	it->qual_allowed = QUAL_ANY;
+
+	tc.key = KEY_F1;
+	tc.mouse_button = 0;
+
+	it = ctxt->create_trigger(tc);
+ 	it->name = "ToggleConsole";
+	it->trigger_state = t_begin;
+	it->mb_required = 0;
+	it->mb_allowed = MOUSEB_ANY;
+	it->qual_required = 0;
+	it->qual_allowed = QUAL_ANY;
+
+	tc.key = KEY_F2;
+	tc.mouse_button = 0;
+
+	it = ctxt->create_trigger(tc);
+ 	it->name = "ToggleDebugHUD";
+	it->trigger_state = t_begin;
+	it->mb_required = 0;
+	it->mb_allowed = MOUSEB_ANY;
+	it->qual_required = 0;
+	it->qual_allowed = QUAL_ANY;
+
+
+	tc.key = KEY_F9;
+	tc.mouse_button = 0;
+
+	it = ctxt->create_trigger(tc);
+ 	it->name = "TakeScreenshot";
+	it->trigger_state = t_begin;
+	it->mb_required = 0;
+	it->mb_allowed = MOUSEB_ANY;
+	it->qual_required = 0;
+	it->qual_allowed = QUAL_ANY;
+
+}
+
+void Build_And_Battle::handle_scene_update(StringHash /*eventType*/,
+    VariantMap& event_data)
+{
+}
+
+void Build_And_Battle::handle_input_event(Urho3D::StringHash event_type, Urho3D::VariantMap& event_data)
+{
+    StringHash name = event_data[InputTrigger::P_TRIGGER_NAME].GetStringHash();
+    int state = event_data[InputTrigger::P_TRIGGER_STATE].GetInt();
+    Vector2 norm_mpos = event_data[InputTrigger::P_NORM_MPOS].GetVector2();
+    Vector2 norm_mdelta = event_data[InputTrigger::P_NORM_MDELTA].GetVector2();
+    int wheel = event_data[InputTrigger::P_MOUSE_WHEEL].GetInt();
+
+    if (name == StringHash("CloseWindow"))
     {
         Console* console = GetSubsystem<Console>();
         if (console->IsVisible())
             console->SetVisible(false);
-        else 
+        else
             engine->Exit();
     }
-}
-
-void Build_And_Battle::handle_key_down(StringHash /*eventType*/, VariantMap& eventData)
-{
-    using namespace KeyDown;
-
-    int key = eventData[P_KEY].GetInt();
-
-    // Toggle console with F1
-    if (key == KEY_F1)
-        GetSubsystem<Console>()->Toggle();
-
-    // Toggle debug HUD with F2
-    else if (key == KEY_F2)
-        GetSubsystem<DebugHud>()->ToggleAll();
-
-    // Common rendering quality controls, only when UI has no focused element
-    else if (!GetSubsystem<UI>()->GetFocusElement())
+    else if (name == StringHash("ToggleDebugHUD"))
     {
-        Renderer* renderer = GetSubsystem<Renderer>();
-
-        // Texture quality
-        if (key == '1') {
-            int quality = renderer->GetTextureQuality();
-            ++quality;
-            if (quality > QUALITY_HIGH)
-                quality = QUALITY_LOW;
-            renderer->SetTextureQuality(quality);
-        }
-
-        // Material quality
-        else if (key == '2') {
-            int quality = renderer->GetMaterialQuality();
-            ++quality;
-            if (quality > QUALITY_HIGH)
-                quality = QUALITY_LOW;
-            renderer->SetMaterialQuality(quality);
-        }
-
-        // Specular lighting
-        else if (key == '3')
-            renderer->SetSpecularLighting(!renderer->GetSpecularLighting());
-
-        // Shadow rendering
-        else if (key == '4')
-            renderer->SetDrawShadows(!renderer->GetDrawShadows());
-
-        // Shadow map resolution
-        else if (key == '5') {
-            int shadowMapSize = renderer->GetShadowMapSize();
-            shadowMapSize *= 2;
-            if (shadowMapSize > 2048)
-                shadowMapSize = 512;
-            renderer->SetShadowMapSize(shadowMapSize);
-        }
-
-        // Shadow depth and filtering quality
-        else if (key == '6') {
-            ShadowQuality quality = renderer->GetShadowQuality();
-            quality = (ShadowQuality)(quality + 1);
-            if (quality > SHADOWQUALITY_BLUR_VSM)
-                quality = SHADOWQUALITY_SIMPLE_16BIT;
-            renderer->SetShadowQuality(quality);
-        }
-
-        // Occlusion culling
-        else if (key == '7') {
-            bool occlusion = renderer->GetMaxOccluderTriangles() > 0;
-            occlusion = !occlusion;
-            renderer->SetMaxOccluderTriangles(occlusion ? 5000 : 0);
-        }
-
-        // Instancing
-        else if (key == '8')
-            renderer->SetDynamicInstancing(!renderer->GetDynamicInstancing());
-
-        // Take screenshot
-        else if (key == '9') 
-        {
-            Graphics* graphics = GetSubsystem<Graphics>();
-            Image screenshot(context_);
-            graphics->TakeScreenShot(screenshot);
-            // Here we save in the Data folder with date and time appended
-            screenshot.SavePNG(
-                GetSubsystem<FileSystem>()->GetProgramDir() + "Data/Screenshot_" + Time::GetTimeStamp().Replaced(':', '_').Replaced('.', '_').Replaced(' ', '_') + ".png");
-        }
+        GetSubsystem<DebugHud>()->ToggleAll();
     }
-}
-
-void Build_And_Battle::handle_scene_update(StringHash /*eventType*/,
-    VariantMap& eventData)
-{
-}
-
-// If the user clicks the canvas, attempt to switch to relative mouse mode on
-// web platform
-void Build_And_Battle::handle_mouse_mode_request(StringHash /*eventType*/,
-    VariantMap& eventData)
-{
-}
-
-void Build_And_Battle::handle_mouse_mode_change(StringHash /*eventType*/,
-    VariantMap& eventData)
-{
-    Input* input = GetSubsystem<Input>();
-    bool mouseLocked = eventData[MouseModeChanged::P_MOUSELOCKED].GetBool();
-    input->SetMouseVisible(!mouseLocked);
+    else if (name == StringHash("ToggleConsole"))
+    {
+        GetSubsystem<Console>()->Toggle();
+    }
+    else if (name == StringHash("TakeScreenshot"))
+    {
+        Graphics* graphics = GetSubsystem<Graphics>();
+        Image screenshot(context_);
+        graphics->TakeScreenShot(screenshot);
+        // Here we save in the Data folder with date and time appended
+        screenshot.SavePNG(
+            GetSubsystem<FileSystem>()->GetProgramDir() + "Data/Screenshot_" + Time::GetTimeStamp().Replaced(':', '_').Replaced('.', '_').Replaced(' ', '_') + ".png");
+    }
 }
