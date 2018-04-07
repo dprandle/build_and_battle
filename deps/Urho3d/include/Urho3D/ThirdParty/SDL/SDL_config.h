@@ -1,1 +1,0 @@
-/home/dprandle/Documents/code/Urho3D/build/debug/Source/ThirdParty/SDL/include/generated/SDL_config.h

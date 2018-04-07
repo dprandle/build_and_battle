@@ -1,1 +1,0 @@
-/home/dprandle/Documents/code/Urho3D/Source/ThirdParty/STB/./stb_image_write.h

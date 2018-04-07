@@ -9,12 +9,9 @@ set(BUILD_AND_BATTLE_SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
 # Set the include directory
 set(BUILD_AND_BATTLE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-set(URHO3D_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/deps/Urho3d/include)
-set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/deps/Urho3d/include/Urho3D/ThirdParty)
+set(URHO3D_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/deps/Urho3D/build/${CMAKE_BUILD_TYPE}/include)
+set(THIRD_PARTY_INCLUDE_DIR ${URHO3D_INCLUDE_DIR}/Urho3D/ThirdParty)
 
-# Postfix debug builds with d
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
@@ -38,9 +35,6 @@ endif()
 
 if (UNIX)
   add_definitions(-std=c++11)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fms-extensions")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fms-extensions")
-  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} --whole-archive" )
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 elseif (WIN32)
@@ -63,9 +57,8 @@ add_custom_target(move_compile_commands ALL
   DEPENDS ${TARGET_NAME}
 )
 
+find_library(URHO3D Urho3D PATHS ${CMAKE_SOURCE_DIR}/deps/Urho3D/build/${CMAKE_BUILD_TYPE}/lib)
 
-find_library(URHO3D_DEBUG Urho3D PATHS ${CMAKE_SOURCE_DIR}/deps/Urho3d/lib/debug)
-find_library(URHO3D_RELEASE Urho3D PATHS ${CMAKE_SOURCE_DIR}/deps/Urho3d/lib/release)
 # link with opengl (no debug version)
 find_package(OpenGL REQUIRED)
 if(NOT OPENGL_FOUND)
@@ -75,12 +68,10 @@ endif(NOT OPENGL_FOUND)
 # Link in the unix only stuff
 if (UNIX)
   target_link_libraries(${EXEC_NAME} pthread)
-  target_link_libraries(${EXEC_NAME} dl)
 endif()
 
 # link in the libraries for Urho3d
 target_link_libraries(${EXEC_NAME}
-  debug ${URHO3D_DEBUG}
-  optimized ${URHO3D_RELEASE}
+  ${URHO3D}
   ${OPENGL_LIBRARIES}
   )

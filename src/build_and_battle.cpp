@@ -141,8 +141,9 @@ void Build_And_Battle::create_visuals()
     UIElement * root = usi->GetRoot();
     Button * btn = new Button(context_);
     btn->SetName("Button1");
+    btn->SetSize(IntVector2(200,200));
+    btn->SetColor(Color(0.7f,0.6f,0.1f,0.4f));
     root->AddChild(btn);
-    btn->SetColor(Color(0.7f,0.6f,0.1f,1.0f));
 
     //Button *
     Context * ctxt = GetContext();
