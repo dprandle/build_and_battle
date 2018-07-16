@@ -28,7 +28,7 @@ include_directories(
   )
 
 if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
-  add_definitions(-DDEBUG_VERSION)
+  add_definitions(-DDEBUG_VERSION -DURHO3D_LOGGING)
 else()
   add_definitions(-DRELEASE_VERSION)
 endif()

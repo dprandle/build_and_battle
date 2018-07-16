@@ -3,21 +3,33 @@
 
 #include <Urho3D/Engine/Application.h>
 #include <Urho3D/Input/Input.h>
+#include <Urho3D/Math/Vector3.h>
 
+#define X_GRID 0.43f
+#define Y_GRID 0.745f
+#define Z_GRID 0.225f
+#define ROUND_FACTOR 0.5f
 
 namespace Urho3D
 {
-
 class Node;
 class Scene;
 class Sprite;
-
 }
 
+class EditorSelectionController;
 class EditorCameraController;
 class InputTranslator;
 class InputMap;
 struct input_context;
+
+Urho3D::Vector3 grid_to_world(const Urho3D::IntVector3 & pSpace, const Urho3D::Vector3 & pOrigin = Urho3D::Vector3());
+void world_snap(Urho3D::Vector3 & world_);
+int32_t index_to_world_x(float x_, bool offset_);
+int32_t index_to_world__y(float y_);
+int32_t index_to_world__z(float z_);
+Urho3D::IntVector3 world_to_grid(const Urho3D::Vector3 & world_);
+
 
 const float TOUCH_SENSITIVITY = 2.0f;
 
@@ -54,6 +66,8 @@ private:
 
     InputTranslator * input_translator;
 
+    EditorSelectionController * editor_selection;
+    
     EditorCameraController * camera_controller;
 
     InputMap * input_map;

@@ -67,7 +67,7 @@ void EditorCameraController::handle_update(Urho3D::StringHash event_type, Urho3D
 		else if (iter->first_ == StringHash("CameraReverse"))
 		{
 			float mag = ft.force.Length();
-			ft.force = cam_node->GetDirection() * -mag;			
+			ft.force = cam_node->GetDirection() * -mag;
 		}
 		else if (iter->first_ == StringHash("CameraLeft"))
 		{
@@ -79,7 +79,7 @@ void EditorCameraController::handle_update(Urho3D::StringHash event_type, Urho3D
 			float mag = ft.force.Length();
 			ft.force = cam_node->GetRight() * mag;
 		}
-		
+
 		resultant += ft.force;
 		ft.time_left -= dt;
 		if (ft.time_left >= -0.01f && ft.time_left <= 0.01f)
@@ -90,14 +90,14 @@ void EditorCameraController::handle_update(Urho3D::StringHash event_type, Urho3D
 
 	Vector3 drag = current_vel.Normalized() * current_vel.LengthSquared() * cp.drag_coef;
 	resultant -= drag;
-	
+
 	Vector3 vh = current_vel + resultant * dt / (2.0f * cp.camera_mass);
 	Vector3 new_pos = cam_node->GetPosition() + vh * dt;
 	current_vel = (vh + resultant * dt / (2.0f * cp.camera_mass))*0.99f;
 
 	// Clamp velocity down
 	float vel_len = current_vel.Length();
-	if (vel_len <= 0.01f && vel_len >= -0.01f)
+	if (vel_len <= 0.5f && vel_len >= -0.5f)
 		current_vel = Vector3();
 
 	cam_node->SetPosition(new_pos);
@@ -173,7 +173,7 @@ void EditorCameraController::setup_input_context(input_context * ctxt)
 	it->qual_allowed = QUAL_ANY;
 }
 
-	
+
 void EditorCameraController::_on_cam_pitch_yaw(const Urho3D::Vector2 & mdelta)
 {
     if (cam_comp == nullptr)
@@ -260,7 +260,7 @@ void EditorCameraController::handle_input_event(Urho3D::StringHash event_type, U
 	else if (name == StringHash("CameraZoom"))
 	{
 		force_timer & ref = ft;
-		
+
 		auto iter = forces.Find(name);
 		if (iter != forces.End())
 			ref = iter->second_;
