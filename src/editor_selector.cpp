@@ -104,6 +104,7 @@ void EditorSelector::set_render_component_to_control(int comp_id)
 
         sel_render_comp = static_cast<StaticModel *>(node_->CreateComponent(cmp->GetType()));
         sel_render_comp->SetModel(smcmp->GetModel());
+        
         sel_render_comp->SetMaterial(mat);
     }
 }

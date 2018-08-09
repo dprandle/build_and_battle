@@ -72,6 +72,8 @@ endif()
 
 # link in the libraries for Urho3d
 target_link_libraries(${EXEC_NAME}
-  ${URHO3D}
-  ${OPENGL_LIBRARIES}
+${URHO3D}
+pthread
+dl
+${OPENGL_LIBRARIES}
   )

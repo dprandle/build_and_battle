@@ -36,7 +36,7 @@ const float TOUCH_SENSITIVITY = 2.0f;
 class Build_And_Battle : public Urho3D::Object
 {
     // Enable type information.
-    URHO3D_OBJECT(Build_And_Battle, Urho3D::Object);
+    URHO3D_OBJECT(Build_And_Battle, Object);
 
 public:
     
