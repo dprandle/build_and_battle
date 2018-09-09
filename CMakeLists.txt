@@ -4,12 +4,14 @@ project(build_and_battle)
 
 set(EXEC_NAME build_and_battle)
 
+set(CUSTOM_LIB_DIR $ENV{HOME}/CustomLibs/${CMAKE_BUILD_TYPE})
+
 # Set the source directories
 set(BUILD_AND_BATTLE_SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
 # Set the include directory
 set(BUILD_AND_BATTLE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-set(URHO3D_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/deps/Urho3D/build/${CMAKE_BUILD_TYPE}/include)
+set(URHO3D_INCLUDE_DIR ${CUSTOM_LIB_DIR}/include)
 set(THIRD_PARTY_INCLUDE_DIR ${URHO3D_INCLUDE_DIR}/Urho3D/ThirdParty)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -34,7 +36,7 @@ else()
 endif()
 
 if (UNIX)
-  add_definitions(-std=c++11)
+#  add_definitions(-std=c++11)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 elseif (WIN32)
@@ -57,7 +59,7 @@ add_custom_target(move_compile_commands ALL
   DEPENDS ${TARGET_NAME}
 )
 
-find_library(URHO3D Urho3D PATHS ${CMAKE_SOURCE_DIR}/deps/Urho3D/build/${CMAKE_BUILD_TYPE}/lib)
+find_library(URHO3D Urho3D PATHS ${CUSTOM_LIB_DIR}/lib/Urho3D)
 
 # link with opengl (no debug version)
 find_package(OpenGL REQUIRED)

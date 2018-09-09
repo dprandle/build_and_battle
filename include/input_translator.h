@@ -47,8 +47,8 @@ struct input_action_trigger
 	}
 };
 
-typedef std::multimap<int64_t, input_action_trigger*> trigger_map;
-typedef std::pair<trigger_map::iterator,trigger_map::iterator> trigger_range;
+using trigger_map = std::multimap<int64_t, input_action_trigger*>;
+using trigger_range = std::pair<trigger_map::iterator,trigger_map::iterator>;
 
 struct input_context
 {
@@ -57,7 +57,7 @@ struct input_context
 		);
 
 	input_action_trigger * create_trigger(
-		const trigger_condition & cond
+		const input_action_trigger & trig
 		);
 
 	bool destroy_trigger(

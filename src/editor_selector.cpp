@@ -7,7 +7,6 @@
 #include <Urho3D/IO/Log.h>
 #include <string>
 
-using namespace Urho3D;
 
 EditorSelector::EditorSelector(Urho3D::Context * context)
     : Component(context), id_of_component_to_control(-1), sel_render_comp(nullptr)
@@ -21,33 +20,47 @@ void EditorSelector::set_selected(Urho3D::Node * node, bool select)
     StaticModel * comp = static_cast<StaticModel *>(scn->GetComponent(id_of_component_to_control));
     if (comp == nullptr)
         return;
+    
+    if ((select && is_selected(node)) || (!select && !is_selected(node)))
+        return;
 
+    StaticModelGroup * ogp = nullptr;
+    StaticModelGroup * gp = static_cast<StaticModelGroup *>(comp);
+    if (sel_render_comp->IsInstanceOf<StaticModelGroup>())
+        ogp = static_cast<StaticModelGroup *>(sel_render_comp);
+
+    URHO3D_LOGINFO("The selection node is " + String(uint64_t(node_)) + " and the passed in node is " + String(uint64_t(node)));
+    // If node passed in is the same node that this component is attached to, it means either the node is a StaticModel
+    // and we should disable our static model and enable the normal static model, or it means we are a static model group
+    // and we should remove all instance nodes and add them back to the normal static model
     if (node == node_)
     {
-        comp->SetEnabled(!select);
-        sel_render_comp->SetEnabled(select);
-    }
-    else
-    {
-        StaticModelGroup * gp = static_cast<StaticModelGroup *>(comp);
-        StaticModelGroup * ogp = static_cast<StaticModelGroup *>(sel_render_comp);
-        if (select)
+        if (ogp == nullptr)
         {
-            URHO3D_LOGINFO("Adding node " + node->GetName() + " (" +  String(uint64_t(node)) + ") to selection");
-            gp->RemoveInstanceNode(node);
-            ogp->AddInstanceNode(node);
-
-
+            comp->SetEnabled(!select);
+            ogp->SetEnabled(select);
+        }
+        else if (!select)
+        {
             int cnt = ogp->GetNumInstanceNodes();
             for (int i = 0; i < cnt; ++i)
             {
                 Node * nd = ogp->GetInstanceNode(i);
-                URHO3D_LOGINFO("The selected node address is " + String((uint64_t)nd));
+                gp->AddInstanceNode(nd);                
             }
+            ogp->RemoveAllInstanceNodes();
+        }
+    }
+    else if (ogp != nullptr)
+    {
+        if (select)
+        {
+            // Remove the instance node from the normal model and add it to the selection model
+            gp->RemoveInstanceNode(node);
+            ogp->AddInstanceNode(node);
         }
         else
         {
-            URHO3D_LOGINFO("Adding node " + node->GetName() + " as normal obj instance and removing from selection");
             ogp->RemoveInstanceNode(node);
             gp->AddInstanceNode(node);
         }
@@ -56,23 +69,23 @@ void EditorSelector::set_selected(Urho3D::Node * node, bool select)
 
 bool EditorSelector::is_selected(Urho3D::Node * node)
 {
+    // If node is our node - it means we are not a static model group and so do not need to worry
+    // about sub objects
     if (node == node_)
     {
         return sel_render_comp->IsEnabled();
     }
     else
     {
-        URHO3D_LOGINFO("The passed in node is " + String((uint64_t)node));
+        // The node passed in is not the same node our static model is attached to (or static model group)
+        // This means either the node is a sub object (if it is selected) or not if it is not selected
         StaticModelGroup * mg = static_cast<StaticModelGroup *>(sel_render_comp);
         int cnt = mg->GetNumInstanceNodes();
         for (int i = 0; i < cnt; ++i)
         {
             Node * nd = mg->GetInstanceNode(i);
-            URHO3D_LOGINFO("The selected node address is " + String((uint64_t)nd));
             if (mg->GetInstanceNode(i) == node)
-            {
                 return true;
-            }
         }
         return false;
     }
@@ -89,7 +102,7 @@ void EditorSelector::set_render_component_to_control(int comp_id)
         return;
 
     id_of_component_to_control = comp_id;
-
+    
     if (sel_render_comp != nullptr)
         node_->RemoveComponent(sel_render_comp);
 

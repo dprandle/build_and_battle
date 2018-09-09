@@ -105,72 +105,50 @@ void EditorCameraController::handle_update(Urho3D::StringHash event_type, Urho3D
 
 void EditorCameraController::setup_input_context(input_context * ctxt)
 {
-	trigger_condition tc;
-	input_action_trigger * it;
-	tc.key = KEY_W;
-	tc.mouse_button = 0;
-	it = ctxt->create_trigger(tc);
- 	it->name = "CameraForward";
-	it->trigger_state = t_begin | t_end;
-	it->mb_required = 0;
-	it->mb_allowed = MOUSEB_ANY;
-	it->qual_required = 0;
-	it->qual_allowed = QUAL_ANY;
+	input_action_trigger it;
 
-	tc.key = KEY_S;
-	it = ctxt->create_trigger(tc);
-	it->name = "CameraReverse";
-	it->trigger_state = t_begin | t_end;
-	it->mb_required = 0;
-	it->mb_allowed = MOUSEB_ANY;
-	it->qual_required = 0;
-	it->qual_allowed = QUAL_ANY;
+    it.condition.key = KEY_W;
+    it.condition.mouse_button = 0;	
+ 	it.name = "CameraForward";
+	it.trigger_state = t_begin | t_end;
+	it.mb_required = 0;
+	it.mb_allowed = MOUSEB_ANY;
+	it.qual_required = 0;
+	it.qual_allowed = QUAL_ANY;
+    ctxt->create_trigger(it);
 
-	tc.key = KEY_A;
-	it = ctxt->create_trigger(tc);
-	it->name = "CameraLeft";
-	it->trigger_state = t_begin | t_end;
-	it->mb_required = 0;
-	it->mb_allowed = MOUSEB_ANY;
-	it->qual_required = 0;
-	it->qual_allowed = QUAL_ANY;
+	it.condition.key = KEY_S;
+	it.name = "CameraReverse";
+	ctxt->create_trigger(it);
 
-	tc.key = KEY_D;
-	it = ctxt->create_trigger(tc);
-	it->name = "CameraRight";
-	it->trigger_state = t_begin | t_end;
-	it->mb_required = 0;
-	it->mb_allowed = MOUSEB_ANY;
-	it->qual_required = 0;
-	it->qual_allowed = QUAL_ANY;
+	it.condition.key = KEY_A;
+	it.name = "CameraLeft";
+	ctxt->create_trigger(it);
 
-	tc.key = 0;
-	tc.mouse_button = MOUSEB_MOVE;
-	it = ctxt->create_trigger(tc);
-	it->name = "CameraPitchYaw";
-	it->trigger_state = t_begin;
-	it->mb_required = MOUSEB_RIGHT;
-	it->mb_allowed = MOUSEB_RIGHT;
-	it->qual_required = 0;
-	it->qual_allowed = QUAL_ANY;
+	it.condition.key = KEY_D;
+	it.name = "CameraRight";
+	ctxt->create_trigger(it);
 
-	tc.mouse_button = MOUSEB_MOVE;
-	it = ctxt->create_trigger(tc);
-	it->name = "CameraMove";
-	it->trigger_state = t_begin;
-	it->mb_required = MOUSEB_LEFT | MOUSEB_RIGHT;
-	it->mb_allowed = MOUSEB_ANY;
-	it->qual_required = 0;
-	it->qual_allowed = QUAL_ANY;
+	it.condition.key = 0;
+	it.condition.mouse_button = MOUSEB_MOVE;
+	it.name = "CameraPitchYaw";
+	it.trigger_state = t_begin;
+	it.mb_required = MOUSEB_RIGHT;
+	it.mb_allowed = MOUSEB_RIGHT;
+	it.qual_required = 0;
+	it.qual_allowed = QUAL_ANY;
+	ctxt->create_trigger(it);
 
-	tc.mouse_button = MOUSEB_WHEEL;
-	it = ctxt->create_trigger(tc);
-	it->name = "CameraZoom";
-	it->trigger_state = t_begin;
-	it->mb_required = 0;
-	it->mb_allowed = MOUSEB_ANY;
-	it->qual_required = 0;
-	it->qual_allowed = QUAL_ANY;
+	it.name = "CameraMove";
+	it.mb_required = MOUSEB_LEFT | MOUSEB_RIGHT;
+	it.mb_allowed = MOUSEB_ANY;
+	ctxt->create_trigger(it);
+
+	it.condition.mouse_button = MOUSEB_WHEEL;
+	it.name = "CameraZoom";
+	it.mb_required = 0;
+	it.mb_allowed = MOUSEB_ANY;
+	ctxt->create_trigger(it);
 }
 
 

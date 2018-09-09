@@ -25,11 +25,10 @@ bool input_context::add_trigger(
 }
 
 input_action_trigger * input_context::create_trigger(
-	const trigger_condition & cond
+	const input_action_trigger & trig
 	)
 {
-	input_action_trigger * trigger = new input_action_trigger;
-	trigger->condition = cond;
+	input_action_trigger * trigger = new input_action_trigger(trig);
 	if (add_trigger(trigger))
 		return trigger;
 	delete trigger;
@@ -41,6 +40,7 @@ bool input_context::destroy_trigger(
 	)
 {
 	input_action_trigger * trg = remove_trigger(trigger);
+    
 	if (trg != nullptr)
 	{
 		delete trg;
@@ -75,6 +75,7 @@ input_action_trigger * input_context::remove_trigger(
 		}
 		++iter;
 	}
+    return nullptr;
 }
 
 std::vector<input_action_trigger*> input_context::remove_triggers(
@@ -108,7 +109,9 @@ InputMap::~InputMap()
 {}
 
 InputMap & InputMap::operator=(InputMap rhs)
-{}
+{
+    return *this;
+}
 
 bool InputMap::add_context(const Urho3D::StringHash & name, input_context * to_add)
 {

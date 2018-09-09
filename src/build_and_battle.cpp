@@ -1,4 +1,28 @@
-#include <Urho3D/Urho3DAll.h>
+//#include <Urho3D/Urho3DAll.h>
+#include <Urho3D/Engine/DebugHud.h>
+#include <Urho3D/Engine/Engine.h>
+#include <Urho3D/Input/InputEvents.h>
+#include <Urho3D/Graphics/Graphics.h>
+#include <Urho3D/UI/UI.h>
+#include <Urho3D/UI/Button.h>
+#include <Urho3D/Engine/Console.h>
+#include <Urho3D/UI/BorderImage.h>
+#include <Urho3D/Resource/XMLFile.h>
+#include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Engine/EngineDefs.h>
+#include <Urho3D/Scene/SceneEvents.h>
+#include <Urho3D/Scene/Scene.h>
+#include <Urho3D/Graphics/Octree.h>
+#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Graphics/RenderPath.h>
+#include <Urho3D/Graphics/Skybox.h>
+#include <Urho3D/Graphics/StaticModelGroup.h>
+#include <Urho3D/IO/FileSystem.h>
+#include <Urho3D/Graphics/DebugRenderer.h>
+#include <Urho3D/Graphics/Camera.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/Technique.h>
+
 
 #include <editor_selector.h>
 #include <editor_selection_controller.h>
@@ -6,12 +30,11 @@
 #include <input_translator.h>
 #include <build_and_battle.h>
 
-using namespace Urho3D;
 
 int main(int argc, char ** argv)
 {
-    Urho3D::ParseArguments(argc, argv);
-    Urho3D::Context * context(new Urho3D::Context());
+    ParseArguments(argc, argv);
+    Context * context(new Context());
     Build_And_Battle * bb(new Build_And_Battle(context));
     int ret = bb->run();
     delete bb;
@@ -84,7 +107,7 @@ Build_And_Battle::~Build_And_Battle()
 bool Build_And_Battle::init()
 {
     VariantMap params;
-    //GetSubsystem<FileSystem>()->SetCurrentDir(GetSubsystem<FileSystem>()->GetProgramDir());
+    GetSubsystem<FileSystem>()->SetCurrentDir(GetSubsystem<FileSystem>()->GetProgramDir());
     params[EP_WINDOW_TITLE] = GetTypeName();
     params[EP_LOG_NAME] = GetTypeName() + ".log";
     params[EP_FULL_SCREEN] = false;
@@ -149,7 +172,7 @@ void Build_And_Battle::create_visuals()
 {
     Graphics * graphics = GetSubsystem<Graphics>();
     graphics->SetWindowTitle("Build and Battle");
-
+    
     // Get default style
     ResourceCache * cache = GetSubsystem<ResourceCache>();
     XMLFile * xmlFile = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
@@ -260,59 +283,37 @@ void Build_And_Battle::setup_global_keys(input_context * ctxt)
     if (ctxt == nullptr)
         return;
 
-    trigger_condition tc;
-    input_action_trigger * it = nullptr;
+    input_action_trigger it;
 
-    tc.key = KEY_ESCAPE;
-    tc.mouse_button = 0;
+    it.condition.key = KEY_ESCAPE;
+    it.condition.mouse_button = 0;
+    it.name = "CloseWindow";
+    it.trigger_state = t_end;
+    it.mb_required = 0;
+    it.mb_allowed = MOUSEB_ANY;
+    it.qual_required = 0;
+    it.qual_allowed = QUAL_ANY;
+    ctxt->create_trigger(it);
 
-    it = ctxt->create_trigger(tc);
-    it->name = "CloseWindow";
-    it->trigger_state = t_end;
-    it->mb_required = 0;
-    it->mb_allowed = MOUSEB_ANY;
-    it->qual_required = 0;
-    it->qual_allowed = QUAL_ANY;
+    it.condition.key = KEY_F1;
+    it.name = "ToggleConsole";
+    it.trigger_state = t_begin;
+    ctxt->create_trigger(it);
 
-    tc.key = KEY_F1;
-    tc.mouse_button = 0;
+    it.condition.key = KEY_F2;
+    it.name = "ToggleDebugHUD";
+    ctxt->create_trigger(it);
 
-    it = ctxt->create_trigger(tc);
-    it->name = "ToggleConsole";
-    it->trigger_state = t_begin;
-    it->mb_required = 0;
-    it->mb_allowed = MOUSEB_ANY;
-    it->qual_required = 0;
-    it->qual_allowed = QUAL_ANY;
-
-    tc.key = KEY_F2;
-    tc.mouse_button = 0;
-
-    it = ctxt->create_trigger(tc);
-    it->name = "ToggleDebugHUD";
-    it->trigger_state = t_begin;
-    it->mb_required = 0;
-    it->mb_allowed = MOUSEB_ANY;
-    it->qual_required = 0;
-    it->qual_allowed = QUAL_ANY;
-
-    tc.key = KEY_F9;
-    tc.mouse_button = 0;
-
-    it = ctxt->create_trigger(tc);
-    it->name = "TakeScreenshot";
-    it->trigger_state = t_begin;
-    it->mb_required = 0;
-    it->mb_allowed = MOUSEB_ANY;
-    it->qual_required = 0;
-    it->qual_allowed = QUAL_ANY;
+    it.condition.key = KEY_F9;
+    it.name = "TakeScreenshot";
+    ctxt->create_trigger(it);
 }
 
 void Build_And_Battle::handle_scene_update(StringHash /*eventType*/, VariantMap & event_data)
 {}
 
-void Build_And_Battle::handle_input_event(Urho3D::StringHash event_type,
-                                          Urho3D::VariantMap & event_data)
+void Build_And_Battle::handle_input_event(StringHash event_type,
+                                          VariantMap & event_data)
 {
     StringHash name = event_data[InputTrigger::P_TRIGGER_NAME].GetStringHash();
     int state = event_data[InputTrigger::P_TRIGGER_STATE].GetInt();

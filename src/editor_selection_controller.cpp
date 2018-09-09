@@ -29,9 +29,46 @@ EditorSelectionController::~EditorSelectionController()
 
 void EditorSelectionController::init()
 {
+    hashes.Push(StringHash(SEL_OBJ_NAME));
+    hashes.Push(StringHash(EXTEND_SEL_OBJ_NAME));
+
     SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(EditorSelectionController, handle_update));
     SubscribeToEvent(E_INPUT_TRIGGER,
                      URHO3D_HANDLER(EditorSelectionController, handle_input_event));
+}
+
+void EditorSelectionController::clear_selection() 
+{
+    auto iter = selection.Begin();
+    while (iter != selection.End())
+    {
+        EditorSelector * es = iter->first_->GetComponent<EditorSelector>();
+        es->set_selected(iter->first_, false);
+        ++iter;
+    }
+    selection.Clear();
+}
+
+void EditorSelectionController::remove_from_selection(Urho3D::Node* node)
+{
+    auto iter = selection.Begin();
+    while (iter != selection.End())
+    {
+        EditorSelector * es = iter->first_->GetComponent<EditorSelector>();
+        if (node == iter->first_)
+        {
+            selection.Erase(iter);
+            es->set_selected(node, false);
+            return;
+        }
+        bool fnd = iter->second_.Remove(node);
+        if (fnd)
+        {
+            es->set_selected(node, false);
+            return;
+        }
+        ++iter;
+    }
 }
 
 void EditorSelectionController::set_camera(Urho3D::Camera * cam)
@@ -65,18 +102,21 @@ void EditorSelectionController::handle_update(Urho3D::StringHash event_type,
 
 void EditorSelectionController::setup_input_context(input_context * ctxt)
 {
-    trigger_condition tc;
-    input_action_trigger * it;
+    input_action_trigger it;
 
-    tc.key = 0;
-    tc.mouse_button = MOUSEB_LEFT;
-    it = ctxt->create_trigger(tc);
-    it->name = "SelectObject";
-    it->trigger_state = t_begin;
-    it->mb_required = 0;
-    it->mb_allowed = 0;
-    it->qual_required = 0;
-    it->qual_allowed = QUAL_ANY;
+    it.condition.key = 0;
+    it.condition.mouse_button = MOUSEB_LEFT;
+    it.trigger_state = t_begin;
+    it.mb_required = 0;
+    it.mb_allowed = 0;
+    it.qual_required = 0;
+    it.qual_allowed = 0;
+    it.name = SEL_OBJ_NAME;
+    ctxt->create_trigger(it);
+    
+    it.name = EXTEND_SEL_OBJ_NAME;
+    it.qual_required = QUAL_CTRL;
+    ctxt->create_trigger(it);
 }
 
 void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type,
@@ -88,46 +128,59 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
     Vector2 norm_mdelta = event_data[InputTrigger::P_NORM_MDELTA].GetVector2();
     int wheel = event_data[InputTrigger::P_MOUSE_WHEEL].GetInt();
 
-    if (name == StringHash("SelectObject"))
+    if (hashes.Contains(name))
     {
         Octree * oct = scene->GetComponent<Octree>();
-
         PODVector<RayQueryResult> res;
+        // Get the closest object for selection
         RayOctreeQuery q(res, cam_comp->GetScreenRay(norm_mpos.x_, norm_mpos.y_));
         oct->RaycastSingle(q);
 
+        // Go through the results from the query - there really should only be one result since we are only doing 
+        // a single raycast
         for (int i = 0; i < res.Size(); ++i)
         {
             RayQueryResult & cr = res[i];
+            Node * nd = cr.node_;
 
             StaticModelGroup * smg = nullptr;
             StaticModel * sm = nullptr;
             
+            // If the object hit is a static model group then get the instance node
             if (cr.drawable_->IsInstanceOf<StaticModelGroup>())
-                smg = static_cast<StaticModelGroup *>(cr.drawable_);
+                nd = static_cast<StaticModelGroup *>(cr.drawable_)->GetInstanceNode(cr.subObject_);
 
             EditorSelector * es = cr.node_->GetComponent<EditorSelector>();
-            Node * nd = cr.node_;
-
-            if (smg != nullptr)
-                nd = smg->GetInstanceNode(cr.subObject_);
-
             if (es != nullptr)
             {
-                es->set_selected(nd, true);
-
-                // Node * nd = smg->GetInstanceNode(cr.subObject_);
-                // if (nd != nullptr)
-                // {
-                //     smg->RemoveInstanceNode(nd);
-                //     //auto ires = selection.insert(nd);
-                //     //if (ires.second)
-                // }
-            }
-            else
-            {
-                URHO3D_LOGINFO("Editor Selector is null");
+                if (name == hashes[0])
+                {
+                    clear_selection();
+                    es->set_selected(nd, true);
+                    if (!selection[cr.node_].Contains(nd) && cr.node_ != nd)
+                        selection[cr.node_].Push(nd);
+                }
+                if (name == hashes[1])
+                {
+                    if (es->is_selected(nd))
+                    {
+                        remove_from_selection(nd);
+                    }
+                    else
+                    {
+                        es->set_selected(nd, true);
+                        if (!selection[cr.node_].Contains(nd) && cr.node_ != nd)
+                            selection[cr.node_].Push(nd);
+                    }
+                }
             }
         }
     }
+
+    if (name == StringHash(EXTEND_SEL_OBJ_NAME))
+    {
+        URHO3D_LOGINFO("WOOOOHOOOO!!!");
+    }
+
 }
+

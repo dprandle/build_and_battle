@@ -2,6 +2,10 @@
 #define EDITOR_SELECTION_CONTROLLER_H
 
 #include <Urho3D/Core/Object.h>
+#include <Urho3D/Math/StringHash.h>
+
+#define SEL_OBJ_NAME "SelectObject"
+#define EXTEND_SEL_OBJ_NAME "ExtendObjectSelection"
 
 namespace Urho3D
 {
@@ -24,6 +28,10 @@ class EditorSelectionController : public Urho3D::Object
 
     void release();
 
+    void clear_selection();
+
+    void remove_from_selection(Urho3D::Node* node);
+
     void set_camera(Urho3D::Camera * cam);
 
     void set_scene(Urho3D::Scene * scn);
@@ -39,6 +47,10 @@ class EditorSelectionController : public Urho3D::Object
     void setup_input_context(input_context * ctxt);
 
   private:
+
+    Urho3D::HashMap<Urho3D::Node*, Urho3D::Vector<Urho3D::Node*>> selection;
+
+    Urho3D::Vector<Urho3D::StringHash> hashes;
 
     Urho3D::Camera * cam_comp;
 
