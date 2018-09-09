@@ -176,11 +176,5 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
             }
         }
     }
-
-    if (name == StringHash(EXTEND_SEL_OBJ_NAME))
-    {
-        URHO3D_LOGINFO("WOOOOHOOOO!!!");
-    }
-
 }
 
