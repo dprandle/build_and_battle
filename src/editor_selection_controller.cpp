@@ -40,17 +40,19 @@ EditorSelectionController::~EditorSelectionController()
 void EditorSelectionController::init()
 {
     UI * usi = GetSubsystem<UI>();
-    ResourceCache * cache = GetSubsystem<ResourceCache>();
-    Texture2D * tex = cache->GetResource<Texture2D>("Textures/UI/selection_rect.png");
     
     ui_root = usi->GetRoot();
     ui_selection_rect = ui_root->CreateChild<BorderImage>("selection_rect");
-    ui_selection_rect->SetVisible(true);
-    ui_selection_rect->SetColor(Color(0.8f,0.8f,0.9f,0.6f));
+    ui_selection_rect->SetColor(Color(0.3f,0.3f,1.0f,0.7f));
     ui_selection_rect->SetVisible(false);
-    ui_selection_rect->SetTexture(tex);
-    ui_selection_rect->SetBorder(irect(4,4,4,4));
-    ui_selection_rect->SetFullImageRect();
+    
+    BorderImage * ui_inner_sel_rect = ui_selection_rect->CreateChild<BorderImage>("inner_selection_rect");
+    ui_inner_sel_rect->SetEnableAnchor(true);
+    ui_inner_sel_rect->SetMinAnchor(0.0f,0.0f);
+    ui_inner_sel_rect->SetMaxAnchor(1.0f,1.0f);
+    ui_inner_sel_rect->SetClipBorder(irect(10,10,10,10));
+    ui_inner_sel_rect->SetClipChildren(true);
+    ui_inner_sel_rect->SetColor(Color(0.5f,0.5f,1.0f,0.3f));
 
     hashes.Push(StringHash(SEL_OBJ_NAME));
     hashes.Push(StringHash(DRAG_SELECTED_OBJECT));
