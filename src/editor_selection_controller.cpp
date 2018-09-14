@@ -339,6 +339,23 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
         {
             drag_point = fvec4();
             clear_selection();
+            
+            if (state == t_begin)
+            {
+                // The Z and W components are the anchor point for the selection rectangle
+                selection_rect.x_ = selection_rect.z_ = norm_mpos.x_;
+                selection_rect.y_ = selection_rect.w_ = norm_mpos.y_;
+
+                ivec2 sz = ui_root->GetSize();
+                ivec2 sz_c(norm_mpos.x_ * sz.x_, norm_mpos.y_ * sz.y_);
+                ui_selection_rect->SetPosition(sz_c);
+                ui_selection_rect->SetSize(ivec2(0,0));
+                ui_selection_rect->SetVisible(true);
+            }
+            else
+            {
+                ui_selection_rect->SetVisible(false);
+            }
         }
     }
 }
