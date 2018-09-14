@@ -53,7 +53,7 @@ add_custom_target(deploy_files ALL
   DEPENDS ${TARGET_NAME}
   )
 
-  # Create a shortcut for the compile commands
+#  Create a shortcut for the compile commands
 add_custom_target(move_compile_commands ALL
   COMMAND cmake -E create_symlink ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_SOURCE_DIR}/compile_commands.json
   DEPENDS ${TARGET_NAME}

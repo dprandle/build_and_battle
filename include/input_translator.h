@@ -43,7 +43,7 @@ struct input_action_trigger
 
 	bool operator==(const input_action_trigger & rhs)
 	{
-		return (condition == rhs.condition && mb_required == rhs.mb_required && qual_required == rhs.qual_required);
+		return (condition == rhs.condition && mb_required == rhs.mb_required && qual_required == rhs.qual_required && trigger_state == rhs.trigger_state);
 	}
 };
 

@@ -29,7 +29,7 @@ void EditorSelector::set_selected(Urho3D::Node * node, bool select)
     if (sel_render_comp->IsInstanceOf<StaticModelGroup>())
         ogp = static_cast<StaticModelGroup *>(sel_render_comp);
 
-    URHO3D_LOGINFO("The selection node is " + String(uint64_t(node_)) + " and the passed in node is " + String(uint64_t(node)));
+    //URHO3D_LOGINFO("The selection node is " + String(uint64_t(node_)) + " and the passed in node is " + String(uint64_t(node)));
     // If node passed in is the same node that this component is attached to, it means either the node is a StaticModel
     // and we should disable our static model and enable the normal static model, or it means we are a static model group
     // and we should remove all instance nodes and add them back to the normal static model
