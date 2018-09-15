@@ -40,17 +40,19 @@ EditorSelectionController::~EditorSelectionController()
 void EditorSelectionController::init()
 {
     UI * usi = GetSubsystem<UI>();
-    ResourceCache * cache = GetSubsystem<ResourceCache>();
-    Texture2D * tex = cache->GetResource<Texture2D>("Textures/UI/selection_rect.png");
     
     ui_root = usi->GetRoot();
     ui_selection_rect = ui_root->CreateChild<BorderImage>("selection_rect");
-    ui_selection_rect->SetVisible(true);
-    ui_selection_rect->SetColor(Color(0.8f,0.8f,0.9f,0.6f));
+    ui_selection_rect->SetColor(Color(0.3f,0.3f,1.0f,0.7f));
     ui_selection_rect->SetVisible(false);
-    ui_selection_rect->SetTexture(tex);
-    ui_selection_rect->SetBorder(irect(4,4,4,4));
-    ui_selection_rect->SetFullImageRect();
+    
+    BorderImage * ui_inner_sel_rect = ui_selection_rect->CreateChild<BorderImage>("inner_selection_rect");
+    ui_inner_sel_rect->SetEnableAnchor(true);
+    ui_inner_sel_rect->SetMinAnchor(0.0f,0.0f);
+    ui_inner_sel_rect->SetMaxAnchor(1.0f,1.0f);
+    ui_inner_sel_rect->SetClipBorder(irect(10,10,10,10));
+    ui_inner_sel_rect->SetClipChildren(true);
+    ui_inner_sel_rect->SetColor(Color(0.5f,0.5f,1.0f,0.3f));
 
     hashes.Push(StringHash(SEL_OBJ_NAME));
     hashes.Push(StringHash(DRAG_SELECTED_OBJECT));
@@ -230,21 +232,24 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
 
         if (ui_selection_rect->IsVisible())
         {
-            if (norm_mpos.x_ > selection_rect.x_)
-                selection_rect.z_ = norm_mpos.x_;
-            else
-                selection_rect.x_ = norm_mpos.x_;
-
-            if (norm_mpos.y_ > selection_rect.y_)
-                selection_rect.w_ = norm_mpos.y_;
-            else
-                selection_rect.y_ = norm_mpos.y_;
-
             ivec2 sz = ui_root->GetSize();
-            ivec2 ul(selection_rect.x_ * sz.x_, selection_rect.y_ * sz.y_);
-            ivec2 lr(selection_rect.z_ * sz.x_, selection_rect.w_ * sz.y_);
-            ui_selection_rect->SetSize(lr - ul);
-            ui_selection_rect->SetPosition(ul);
+            fvec2 anchor_point(selection_rect.z_,selection_rect.w_);
+            fvec2 new_sz = norm_mpos - anchor_point;
+            
+            // Set the selection rect position by default to the anchor point (point where first clicked on started the selection
+            // rect), then if the rectangle formed by this point as the upper left corner and the new mouse pos is the lower left
+            // corner makes a negative size (where down and to the right are positive), then we gotta set the selection rect position
+            // at the new mouse pos and make the size = abs(size)
+            selection_rect.x_ = anchor_point.x_;
+            selection_rect.y_ = anchor_point.y_;
+            if (new_sz.x_ < 0.0f)
+                selection_rect.x_ = norm_mpos.x_;
+            if (norm_mpos.y_ < 0.0f)
+                selection_rect.y_ = norm_mpos.y_;
+            
+            // Convert set the selection rect position and size in pixels (multiply the norm coords by root element pixel size)
+            ui_selection_rect->SetSize(ivec2(Abs(new_sz.x_) * sz.x_, Abs(new_sz.y_) * sz.y_));
+            ui_selection_rect->SetPosition(ivec2(selection_rect.x_ * sz.x_, selection_rect.y_ * sz.y_));
             iout << "Selection rect:" << selection_rect.ToString().CString();
         }
     }
@@ -252,8 +257,10 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
     {
         if (state == t_begin)
         {
+            // The Z and W components are the anchor point for the selection rectangle
             selection_rect.x_ = selection_rect.z_ = norm_mpos.x_;
             selection_rect.y_ = selection_rect.w_ = norm_mpos.y_;
+            
             ivec2 sz = ui_root->GetSize();
             ivec2 sz_c(norm_mpos.x_ * sz.x_, norm_mpos.y_ * sz.y_);
             ui_selection_rect->SetPosition(sz_c);
@@ -332,6 +339,23 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
         {
             drag_point = fvec4();
             clear_selection();
+            
+            if (state == t_begin)
+            {
+                // The Z and W components are the anchor point for the selection rectangle
+                selection_rect.x_ = selection_rect.z_ = norm_mpos.x_;
+                selection_rect.y_ = selection_rect.w_ = norm_mpos.y_;
+
+                ivec2 sz = ui_root->GetSize();
+                ivec2 sz_c(norm_mpos.x_ * sz.x_, norm_mpos.y_ * sz.y_);
+                ui_selection_rect->SetPosition(sz_c);
+                ui_selection_rect->SetSize(ivec2(0,0));
+                ui_selection_rect->SetVisible(true);
+            }
+            else
+            {
+                ui_selection_rect->SetVisible(false);
+            }
         }
     }
 }
