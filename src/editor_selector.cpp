@@ -38,7 +38,7 @@ void EditorSelector::set_selected(Urho3D::Node * node, bool select)
         if (ogp == nullptr)
         {
             comp->SetEnabled(!select);
-            ogp->SetEnabled(select);
+            sel_render_comp->SetEnabled(select);
         }
         else if (!select)
         {

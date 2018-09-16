@@ -252,32 +252,40 @@ void Build_And_Battle::create_visuals()
     Model * mod = cache->GetResource<Model>("Models/Tiles/Grass.mdl");
 
     int cnt = 0;
-    for (int y = 0; y < 10; ++y)
+    for (int y = 0; y < 20; ++y)
     {
-        for (int x = 0; x < 10; ++x)
+        for (int x = 0; x < 20; ++x)
         {
-            if (!lastGroup || lastGroup->GetNumInstanceNodes() >= 25 * 25)
+            for (int z = 0; z < 1; ++z)
             {
-                Node * tile_group_node = scene->CreateChild("Grass_Tile_Group");
-                EditorSelector * sel = tile_group_node->CreateComponent<EditorSelector>();
-                lastGroup = tile_group_node->CreateComponent<StaticModelGroup>();
-                lastGroup->SetModel(mod);
-                lastGroup->SetMaterial(grass_tile);
-                sel->set_selection_material("Materials/Tiles/GrassSelected.xml");
-                sel->set_render_component_to_control(lastGroup->GetID());
-            }
+            // if (!lastGroup || lastGroup->GetNumInstanceNodes() >= 25 * 25)
+            // {
+            //     Node * tile_group_node = scene->CreateChild("Grass_Tile_Group");
+            //     EditorSelector * sel = tile_group_node->CreateComponent<EditorSelector>();
+            //     lastGroup = tile_group_node->CreateComponent<StaticModelGroup>();
+            //     lastGroup->SetModel(mod);
+            //     lastGroup->SetMaterial(grass_tile);
+            //     sel->set_selection_material("Materials/Tiles/GrassSelected.xml");
+            //     sel->set_render_component_to_control(lastGroup->GetID());
+            // }
 
             Node * tile_node = scene->CreateChild("Grass_Tile_" + String(cnt));
-            tile_node->SetPosition(grid_to_world(IntVector3(x, y, 0)));
+            StaticModel * modc = tile_node->CreateComponent<StaticModel>();
+            EditorSelector * sel = tile_node->CreateComponent<EditorSelector>();
+
+            modc->SetModel(mod);
+            modc->SetMaterial(grass_tile);
+            sel->set_selection_material("Materials/Tiles/GrassSelected.xml");
+            sel->set_render_component_to_control(modc->GetID());
+            sel->set_selected(tile_node, false);
+
+            tile_node->SetPosition(grid_to_world(IntVector3(x, y, z)));
             tile_node->SetScale(0.5f);
             tile_node->SetRotation(Quaternion(90.0f, Vector3(1.0f, 0.0f, 0.0f)));
-            lastGroup->AddInstanceNode(tile_node);
-
-            StaticModel * mod2 = tile_node->CreateComponent<StaticModel>();
-            mod2->SetModel(mod);
-            mod2->SetMaterial(grass_tile_selected);
-            mod2->SetEnabled(false);
+            
+            //lastGroup->AddInstanceNode(tile_node);
             ++cnt;
+            }
         }
     }
 }

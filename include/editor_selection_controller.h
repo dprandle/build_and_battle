@@ -12,6 +12,10 @@
 #define DRAGGING "Dragging"
 #define ENABLE_SELECTION_RECT "EnableSelectionRect"
 
+const Urho3D::Color SEL_RECT_BORDER_COL = Urho3D::Color(0.0f,0.0f,0.7f,0.6f);
+const int BORDER_SIZE = 1;
+const Urho3D::Color SEL_RECT_COL = Urho3D::Color(0.0f,0.0f,0.7f,0.2f);
+
 namespace Urho3D
 {
 class Node;
@@ -66,7 +70,7 @@ class EditorSelectionController : public Urho3D::Object
 
     Urho3D::UIElement * ui_root;
 
-    Urho3D::BorderImage * ui_selection_rect;
+    Urho3D::UIElement * ui_selection_rect;
 
     fvec3 frame_translation;
 

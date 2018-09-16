@@ -5,12 +5,15 @@
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Component.h>
 #include <Urho3D/Scene/Scene.h>
-
+#include <Urho3D/Math/Frustum.h>
 #include <Urho3D/Resource/ResourceCache.h>
-#include <Urho3D/Graphics/Texture2D.h>
 
+#include <Urho3D/Graphics/Viewport.h>
 #include <Urho3D/IO/Log.h>
 
+#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Graphics/Texture2D.h>
+#include <Urho3D/Graphics/Model.h>
 #include <Urho3D/Graphics/Camera.h>
 #include <Urho3D/Graphics/StaticModelGroup.h>
 #include <Urho3D/Graphics/Octree.h>
@@ -42,17 +45,49 @@ void EditorSelectionController::init()
     UI * usi = GetSubsystem<UI>();
     
     ui_root = usi->GetRoot();
-    ui_selection_rect = ui_root->CreateChild<BorderImage>("selection_rect");
-    ui_selection_rect->SetColor(Color(0.3f,0.3f,1.0f,0.7f));
+
+    ui_selection_rect = ui_root->CreateChild<UIElement>("sel_rect_root");
     ui_selection_rect->SetVisible(false);
-    
+    //ui_selection_rect->SetSortChildren(false);
+
+    BorderImage * ui_left_border_sel_rect = ui_selection_rect->CreateChild<BorderImage>("leftb_selection_rect");
+    ui_left_border_sel_rect->SetEnableAnchor(true);
+    ui_left_border_sel_rect->SetMinAnchor(0.0f,0.0f);
+    ui_left_border_sel_rect->SetMaxAnchor(0.0f,1.0f);
+    ui_left_border_sel_rect->SetMaxOffset(ivec2(BORDER_SIZE,0));
+    ui_left_border_sel_rect->SetColor(SEL_RECT_BORDER_COL);
+
+    BorderImage * ui_right_border_sel_rect = ui_selection_rect->CreateChild<BorderImage>("rightb_selection_rect");
+    ui_right_border_sel_rect->SetEnableAnchor(true);
+    ui_right_border_sel_rect->SetMinAnchor(1.0f,0.0f);
+    ui_right_border_sel_rect->SetMaxAnchor(1.0f,1.0f);
+    ui_right_border_sel_rect->SetMinOffset(ivec2(0,0));
+    ui_right_border_sel_rect->SetMaxOffset(ivec2(BORDER_SIZE,0));
+    ui_right_border_sel_rect->SetColor(SEL_RECT_BORDER_COL);
+
+    BorderImage * ui_top_border_sel_rect = ui_selection_rect->CreateChild<BorderImage>("topb_selection_rect");
+    ui_top_border_sel_rect->SetEnableAnchor(true);
+    ui_top_border_sel_rect->SetMinAnchor(0.0f,0.0f);
+    ui_top_border_sel_rect->SetMaxAnchor(1.0f,0.0f);
+    ui_top_border_sel_rect->SetMinOffset(ivec2(BORDER_SIZE,0));
+    ui_top_border_sel_rect->SetMaxOffset(ivec2(-BORDER_SIZE,BORDER_SIZE));
+    ui_top_border_sel_rect->SetColor(SEL_RECT_BORDER_COL);
+
+    BorderImage * ui_bottom_border_sel_rect = ui_selection_rect->CreateChild<BorderImage>("bottomb_selection_rect");
+    ui_bottom_border_sel_rect->SetEnableAnchor(true);
+    ui_bottom_border_sel_rect->SetMinAnchor(0.0f,1.0f);
+    ui_bottom_border_sel_rect->SetMaxAnchor(1.0f,1.0f);
+    ui_bottom_border_sel_rect->SetMinOffset(ivec2(BORDER_SIZE,0));
+    ui_bottom_border_sel_rect->SetMaxOffset(ivec2(-BORDER_SIZE,BORDER_SIZE));
+    ui_bottom_border_sel_rect->SetColor(SEL_RECT_BORDER_COL);
+
     BorderImage * ui_inner_sel_rect = ui_selection_rect->CreateChild<BorderImage>("inner_selection_rect");
     ui_inner_sel_rect->SetEnableAnchor(true);
     ui_inner_sel_rect->SetMinAnchor(0.0f,0.0f);
     ui_inner_sel_rect->SetMaxAnchor(1.0f,1.0f);
-    ui_inner_sel_rect->SetClipBorder(irect(10,10,10,10));
-    ui_inner_sel_rect->SetClipChildren(true);
-    ui_inner_sel_rect->SetColor(Color(0.5f,0.5f,1.0f,0.3f));
+    ui_inner_sel_rect->SetMinOffset(ivec2(BORDER_SIZE,BORDER_SIZE));
+    ui_inner_sel_rect->SetMaxOffset(ivec2(-BORDER_SIZE,-BORDER_SIZE));
+    ui_inner_sel_rect->SetColor(SEL_RECT_COL);
 
     hashes.Push(StringHash(SEL_OBJ_NAME));
     hashes.Push(StringHash(DRAG_SELECTED_OBJECT));
@@ -187,8 +222,6 @@ void EditorSelectionController::setup_input_context(input_context * ctxt)
     ctxt->create_trigger(it);
 
 
-
-
 }
 
 void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type,
@@ -244,13 +277,60 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
             selection_rect.y_ = anchor_point.y_;
             if (new_sz.x_ < 0.0f)
                 selection_rect.x_ = norm_mpos.x_;
-            if (norm_mpos.y_ < 0.0f)
+            if (new_sz.y_ < 0.0f)
                 selection_rect.y_ = norm_mpos.y_;
             
             // Convert set the selection rect position and size in pixels (multiply the norm coords by root element pixel size)
             ui_selection_rect->SetSize(ivec2(Abs(new_sz.x_) * sz.x_, Abs(new_sz.y_) * sz.y_));
             ui_selection_rect->SetPosition(ivec2(selection_rect.x_ * sz.x_, selection_rect.y_ * sz.y_));
-            iout << "Selection rect:" << selection_rect.ToString().CString();
+
+            Frustum f;
+            
+//            Viewport vp(context_);
+            Viewport * vp = GetSubsystem<Renderer>()->GetViewport(0);
+            irect rec = vp->GetRect();
+            vp->SetRect(irect(ui_selection_rect->GetPosition(),ui_selection_rect->GetPosition() + ui_selection_rect->GetSize()));
+            vp->SetCamera(cam_comp);
+            f.Define(cam_comp->GetProjection() * cam_comp->GetView());
+            //vp->SetRect(rec);
+            
+            PODVector<Drawable*> res;
+            
+            Octree * octree = scene->GetComponent<Octree>();
+            FrustumOctreeQuery fq(res, f, DRAWABLE_GEOMETRY);
+            octree->GetDrawables(fq);
+            for (int i = 0; i < res.Size(); ++i)
+            {
+                Node * nd = res[i]->GetNode();
+                StaticModel * sm = nullptr;
+                EditorSelector * es = nd->GetComponent<EditorSelector>();
+
+                if (es == nullptr)
+                    continue;
+                
+                // If the object hit is a static model group then we need to go through each instance
+                // one by one and check the bounding box against the frustum
+                if (res[i]->IsInstanceOf<StaticModelGroup>())
+                {
+                    StaticModelGroup * smg = static_cast<StaticModelGroup*>(res[i]);
+                    const BoundingBox & bb = smg->GetModel()->GetBoundingBox();
+                    for (int inst_id = 0; inst_id < smg->GetNumInstanceNodes(); ++inst_id)
+                    {
+                        Node * inst_nd = smg->GetInstanceNode(inst_id);
+                        if (f.IsInsideFast(bb))
+                        {
+                            es->set_selected(inst_nd, true);
+                            if (!selection[nd].Contains(inst_nd) && nd != inst_nd)
+                                selection[nd].Push(inst_nd);
+                        }
+                    }
+                }
+                else
+                {
+                    es->set_selected(nd, true);
+                    selection[nd].Clear();
+                }
+            }
         }
     }
     else if (name == hashes[4])
@@ -313,6 +393,8 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
                     drag_point = fvec4();
                     if (state == t_begin)
                         drag_point = fvec4(cr.position_, 1.0f);
+                    else
+                        ui_selection_rect->SetVisible(false);
                 }
                 else if (name == hashes[2])
                 {
@@ -335,11 +417,14 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
             }
         }
 
-        if (res.Empty() && name == hashes[0])
+        if (res.Empty())
         {
-            drag_point = fvec4();
-            clear_selection();
-            
+            if (name == hashes[0])
+            {
+                drag_point = fvec4();
+                clear_selection();
+            }
+
             if (state == t_begin)
             {
                 // The Z and W components are the anchor point for the selection rectangle
