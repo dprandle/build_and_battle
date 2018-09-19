@@ -26,6 +26,8 @@
 #include <Urho3D/Container/List.h>
 #include <Urho3D/Container/LinkedList.h>
 
+#define PI 3.14159265359f
+
 using Urho3D::Color;
 using Urho3D::Plane;
 using Urho3D::Sphere;
@@ -56,3 +58,20 @@ using ivec3 = Urho3D::IntVector3;
 using fbbox = Urho3D::BoundingBox;
 using fquat = Urho3D::Quaternion;
 
+template<class T>
+T degrees(const T & val_)
+{
+	return (180 / PI) * val_;
+}
+
+template<class T>
+T radians(const T & val_)
+{
+	return (PI / 180) * val_;
+}
+
+fmat4 perspective_from(float fov_, float aspect_ratio_, float z_near_, float z_far_);
+
+fmat4 perspective_from(float near_left, float near_right, float near_top, float near_bottom, float z_near, float z_far);
+
+fmat4 ortho_from(float left_, float right_, float top_, float bottom_, float near_, float far_);

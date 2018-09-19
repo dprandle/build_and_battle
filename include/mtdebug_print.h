@@ -2,7 +2,7 @@
 
 #include <Urho3D/Core/Mutex.h>
 #include <sstream>
-#include <typedefs.h>
+#include <math_utils.h>
 
 #define iout MTDebug_Print(true, false, urho_lt_info)
 #define iout_nl MTDebug_Print(true, true, urho_lt_info)

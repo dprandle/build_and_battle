@@ -1,6 +1,7 @@
 #include <camera_controller.h>
 #include <input_translator.h>
 
+#include <mtdebug_print.h>
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Component.h>
 #include <Urho3D/Graphics/Camera.h>
@@ -52,55 +53,63 @@ void EditorCameraController::handle_update(Urho3D::StringHash event_type, Urho3D
     Urho3D::Node * cam_node = cam_comp->GetNode();
 
 	float dt = event_data["TimeStep"].GetFloat();
+    static double accumulator = 0.0f;
+    accumulator += dt;
 
-	Vector3 resultant;
-	auto iter = forces.Begin();
-	while (iter != forces.End())
-	{
-		force_timer & ft = iter->second_;
+    while ( accumulator >= FIXED_TIMESTEP )
+    {
+        Vector3 resultant;
+        auto iter = forces.Begin();
+        while (iter != forces.End())
+        {
+            force_timer & ft = iter->second_;
 
-		if (iter->first_ == StringHash("CameraForward"))
-		{
-			float mag = ft.force.Length();
-			ft.force = cam_node->GetDirection() * mag;
-		}
-		else if (iter->first_ == StringHash("CameraReverse"))
-		{
-			float mag = ft.force.Length();
-			ft.force = cam_node->GetDirection() * -mag;
-		}
-		else if (iter->first_ == StringHash("CameraLeft"))
-		{
-			float mag = ft.force.Length();
-			ft.force = cam_node->GetRight() * -mag;
-		}
-		else if (iter->first_ == StringHash("CameraRight"))
-		{
-			float mag = ft.force.Length();
-			ft.force = cam_node->GetRight() * mag;
-		}
+            if (iter->first_ == StringHash("CameraForward"))
+            {
+                float mag = ft.force.Length();
+                ft.force = cam_node->GetDirection() * mag;
+            }
+            else if (iter->first_ == StringHash("CameraReverse"))
+            {
+                float mag = ft.force.Length();
+                ft.force = cam_node->GetDirection() * -mag;
+            }
+            else if (iter->first_ == StringHash("CameraLeft"))
+            {
+                float mag = ft.force.Length();
+                ft.force = cam_node->GetRight() * -mag;
+            }
+            else if (iter->first_ == StringHash("CameraRight"))
+            {
+                float mag = ft.force.Length();
+                ft.force = cam_node->GetRight() * mag;
+            }
 
-		resultant += ft.force;
-		ft.time_left -= dt;
-		if (ft.time_left >= -0.01f && ft.time_left <= 0.01f)
-			iter = forces.Erase(iter);
-		else
-			++iter;
-	}
+            resultant += ft.force;
+            ft.time_left -= FIXED_TIMESTEP;
+            if (ft.time_left <= 0.0f && ft.time_left > -0.9f)
+                iter = forces.Erase(iter);
+            else
+                ++iter;
+        }
 
-	Vector3 drag = current_vel.Normalized() * current_vel.LengthSquared() * cp.drag_coef;
-	resultant -= drag;
+        Vector3 drag = current_vel.Normalized() * current_vel.LengthSquared() * cp.drag_coef;
+        resultant -= drag;
 
-	Vector3 vh = current_vel + resultant * dt / (2.0f * cp.camera_mass);
-	Vector3 new_pos = cam_node->GetPosition() + vh * dt;
-	current_vel = (vh + resultant * dt / (2.0f * cp.camera_mass))*0.99f;
+        Vector3 vh = current_vel + resultant * FIXED_TIMESTEP / (2.0f * cp.camera_mass);
+        Vector3 new_pos = cam_node->GetPosition() + vh * FIXED_TIMESTEP;
+        current_vel = (vh + resultant * FIXED_TIMESTEP / (2.0f * cp.camera_mass))*0.99f;
 
-	// Clamp velocity down
-	float vel_len = current_vel.Length();
-	if (vel_len <= 0.5f && vel_len >= -0.5f)
-		current_vel = Vector3();
+        // Clamp velocity down
+        float vel_len = current_vel.Length();
+        if (vel_len <= 0.5f && vel_len >= -0.5f)
+            current_vel = Vector3();
 
-	cam_node->SetPosition(new_pos);
+        cam_node->SetPosition(new_pos);
+
+        accumulator -= FIXED_TIMESTEP;
+    }
+
 }
 
 void EditorCameraController::setup_input_context(input_context * ctxt)
@@ -243,7 +252,7 @@ void EditorCameraController::handle_input_event(Urho3D::StringHash event_type, U
 		if (iter != forces.End())
 			ref = iter->second_;
 
-		ref.time_left = 0.25f;
+		ref.time_left = 0.01f;
 		if (wheel > 0)
 			ref.force += cam_node->GetDirection() * cp.zoom_force;
 		else if (wheel < 0)

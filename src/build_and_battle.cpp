@@ -5,6 +5,10 @@
 #include <Urho3D/UI/Button.h>
 #include <Urho3D/UI/BorderImage.h>
 
+#include <Urho3D/Physics/RigidBody.h>
+#include <Urho3D/Physics/PhysicsWorld.h>
+#include <Urho3D/Physics/CollisionShape.h>
+
 #include <Urho3D/Resource/XMLFile.h>
 #include <Urho3D/Resource/ResourceCache.h>
 
@@ -204,8 +208,9 @@ void Build_And_Battle::create_visuals()
     //Button *
     Context * ctxt = GetContext();
     Scene * scene = new Scene(ctxt);
+    PhysicsWorld * phys = scene->CreateComponent<PhysicsWorld>();
     scene->CreateComponent<Octree>();
-    scene->CreateComponent<DebugRenderer>();
+    scene->CreateComponent<DebugRenderer>()->SetEnabled(true);
     editor_selection->set_scene(scene);
 
     Node * editor_cam_node = new Node(ctxt);
@@ -216,7 +221,9 @@ void Build_And_Battle::create_visuals()
     editor_selection->set_camera(editor_cam);
 
     Renderer * rnd = GetSubsystem<Renderer>();
+    
     Viewport * vp = new Viewport(ctxt, scene, editor_cam);
+    vp->SetDrawDebug(true);
 
     rnd->SetViewport(0, vp);
     RenderPath * rp = new RenderPath;
@@ -256,7 +263,7 @@ void Build_And_Battle::create_visuals()
     {
         for (int x = 0; x < 20; ++x)
         {
-            for (int z = 0; z < 1; ++z)
+            for (int z = 0; z < 4; ++z)
             {
             // if (!lastGroup || lastGroup->GetNumInstanceNodes() >= 25 * 25)
             // {
@@ -278,6 +285,12 @@ void Build_And_Battle::create_visuals()
             sel->set_selection_material("Materials/Tiles/GrassSelected.xml");
             sel->set_render_component_to_control(modc->GetID());
             sel->set_selected(tile_node, false);
+
+            CollisionShape * cs = tile_node->CreateComponent<CollisionShape>();
+            cs->SetBox(modc->GetBoundingBox().Size());
+
+            RigidBody * rb = tile_node->CreateComponent<RigidBody>();
+            rb->SetMass(0.0f);
 
             tile_node->SetPosition(grid_to_world(IntVector3(x, y, z)));
             tile_node->SetScale(0.5f);
@@ -324,7 +337,8 @@ void Build_And_Battle::setup_global_keys(input_context * ctxt)
 }
 
 void Build_And_Battle::handle_scene_update(StringHash /*eventType*/, VariantMap & event_data)
-{}
+{
+}
 
 void Build_And_Battle::handle_input_event(StringHash event_type,
                                           VariantMap & event_data)

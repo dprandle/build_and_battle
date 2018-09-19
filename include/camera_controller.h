@@ -5,10 +5,11 @@
 
 static const float default_movement_sensitivity = 15.0f;
 static const float default_pitch_yaw_sensitivity = 100.0f;
-static const float default_zoom_force = 2000.0f;
-static const float default_move_force = 2000.0f;
+static const float default_zoom_force = 1400.0f;
+static const float default_move_force = 1400.0f;
 static const float default_camera_mass = 5.0f;
-static const float default_drag_coef = 20.0f;
+static const float default_drag_coef = 5.0f;
+static const float FIXED_TIMESTEP = 0.01f;
 
 #define MAX_MASS 100.0f
 #define MAX_FORCE 10000.0f

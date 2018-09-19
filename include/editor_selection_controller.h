@@ -2,7 +2,7 @@
 #define EDITOR_SELECTION_CONTROLLER_H
 
 #include <Urho3D/Core/Object.h>
-#include <typedefs.h>
+#include <math_utils.h>
 #include <Urho3D/Graphics/OctreeQuery.h>
 #include <Urho3D/Graphics/OcclusionBuffer.h>
 
@@ -11,6 +11,10 @@
 #define EXTEND_SEL_OBJ_NAME "ExtendObjectSelection"
 #define DRAGGING "Dragging"
 #define ENABLE_SELECTION_RECT "EnableSelectionRect"
+#define Z_MOVE_HELD "ZMoveHeld"
+#define X_MOVE_HELD "XMoveHeld"
+#define Y_MOVE_HELD "YMoveHeld"
+
 
 const Urho3D::Color SEL_RECT_BORDER_COL = Urho3D::Color(0.0f,0.0f,0.7f,0.6f);
 const int BORDER_SIZE = 1;
@@ -24,6 +28,11 @@ class Scene;
 class UIElement;
 class BorderImage;
 }
+
+const int Z_MOVE_FLAG = 1;
+const int X_MOVE_FLAG = 2;
+const int Y_MOVE_FLAG = 4;
+
 
 struct input_context;
 
@@ -60,6 +69,8 @@ class EditorSelectionController : public Urho3D::Object
 
   private:
 
+    void add_to_selection_from_rect();
+
     HashMap<Urho3D::Node*, Vector<Urho3D::Node*>> selection;
 
     Vector<StringHash> hashes;
@@ -72,11 +83,15 @@ class EditorSelectionController : public Urho3D::Object
 
     Urho3D::UIElement * ui_selection_rect;
 
+    HashMap<Urho3D::Node*,bool> cached_raycasts;
+
     fvec3 frame_translation;
 
     fvec4 drag_point;
     
     fvec4 selection_rect;
+
+    int movement_flag;
 
 };
 #endif
