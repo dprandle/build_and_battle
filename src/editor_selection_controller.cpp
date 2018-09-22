@@ -2,10 +2,18 @@
 #include <input_translator.h>
 #include <mtdebug_print.h>
 #include <build_and_battle.h>
+#include <hex_tile_grid.h>
+#include <tile_occupier.h>
+#include <Urho3D/Scene/SceneEvents.h>
+
+#include <Urho3D/Graphics/DebugRenderer.h>
 
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
 #include <Urho3D/Physics/CollisionShape.h>
+
+#include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Graphics/Material.h>
 
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Component.h>
@@ -38,17 +46,13 @@
 using namespace Urho3D;
 
 EditorSelectionController::EditorSelectionController(Urho3D::Context * context)
-    : Object(context),
+    : Component(context),
       cam_comp(nullptr),
       scene(nullptr),
       selection_rect(-1.0f, -1.0f, -1.0f, -1.0f),
-      movement_flag(0)
-{}
-
-EditorSelectionController::~EditorSelectionController()
-{}
-
-void EditorSelectionController::init()
+      movement_flag(0),
+      move_allowed(true),
+      do_snap(false)
 {
     UI * usi = GetSubsystem<UI>();
 
@@ -110,22 +114,94 @@ void EditorSelectionController::init()
     hashes.Push(StringHash(Z_MOVE_HELD));
     hashes.Push(StringHash(X_MOVE_HELD));
     hashes.Push(StringHash(Y_MOVE_HELD));
+    hashes.Push(StringHash(TOGGLE_OCC_DEBUG));
 
     SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(EditorSelectionController, handle_update));
     SubscribeToEvent(E_INPUT_TRIGGER,
                      URHO3D_HANDLER(EditorSelectionController, handle_input_event));
+    SubscribeToEvent(E_COMPONENTADDED,
+                     URHO3D_HANDLER(EditorSelectionController, handle_component_added));
+    SubscribeToEvent(E_COMPONENTREMOVED,
+                     URHO3D_HANDLER(EditorSelectionController, handle_component_removed));
+}
+
+EditorSelectionController::~EditorSelectionController()
+{}
+
+void EditorSelectionController::OnSceneSet(Urho3D::Scene * scene_)
+{
+    scene = scene_;
+    Component::OnSceneSet(scene_);
 }
 
 void EditorSelectionController::clear_selection()
 {
-    auto iter = selection.Begin();
-    while (iter != selection.End())
+    selection.Clear();
+    sel_rect_selection.Clear();
+}
+
+void EditorSelectionController::handle_component_added(Urho3D::StringHash eventType,
+                                                       Urho3D::VariantMap & eventData)
+{
+    Scene * scn = static_cast<Scene *>(eventData[NodeRemoved::P_SCENE].GetPtr());
+    if (scene != scn)
+        return;
+    Component * comp = static_cast<Component *>(eventData[ComponentRemoved::P_COMPONENT].GetPtr());
+    if (comp->IsInstanceOf<EditorSelector>())
+        scene_sel_comps.Insert(static_cast<EditorSelector *>(comp));
+}
+
+void EditorSelectionController::handle_component_removed(Urho3D::StringHash eventType,
+                                                         Urho3D::VariantMap & eventData)
+{
+    Scene * scn = static_cast<Scene *>(eventData[ComponentRemoved::P_SCENE].GetPtr());
+    if (scene != scn)
+        return;
+    Component * comp = static_cast<Component *>(eventData[ComponentRemoved::P_COMPONENT].GetPtr());
+    if (comp->IsInstanceOf<EditorSelector>())
+        scene_sel_comps.Erase(static_cast<EditorSelector *>(comp));
+}
+
+void EditorSelectionController::DrawDebugGeometry(bool depth_test)
+{
+    if (scene == nullptr)
+        return;
+
+    Urho3D::DebugRenderer * deb = scene->GetComponent<DebugRenderer>();
+    if (deb == nullptr)
+        return;
+
+    auto iter = cached_raycasts.Begin();
+    while (iter != cached_raycasts.End())
     {
-        EditorSelector * es = iter->first_->GetComponent<EditorSelector>();
-        es->set_selected(iter->first_, false);
+        Node * camn = cam_comp->GetNode();
+        fvec3 cam_pos = camn->GetPosition() + camn->GetDirection().Normalized() * 0.1f;
+        fvec3 node_pos = iter->first_->GetPosition();
+        deb->AddLine(cam_pos, node_pos, Color(1.0f, 0.0f, 0.0f), depth_test);
         ++iter;
     }
-    selection.Clear();
+}
+
+void EditorSelectionController::translate_selection(const fvec3 & translation)
+{
+    auto sel_iter = selection.Begin();
+    while (sel_iter != selection.End())
+    {
+        sel_iter->first_->Translate(translation, TS_WORLD);
+        ++sel_iter;
+    }
+}
+
+void EditorSelectionController::toggle_occ_debug_selection()
+{
+    auto sel_iter = selection.Begin();
+    while (sel_iter != selection.End())
+    {
+        Tile_Occupier * toc = sel_iter->first_->GetComponent<Tile_Occupier>();
+        if (toc != nullptr)
+            toc->enable_debug(!toc->debug_enabled());
+        ++sel_iter;
+    }
 }
 
 void EditorSelectionController::remove_from_selection(Urho3D::Node * node)
@@ -137,15 +213,11 @@ void EditorSelectionController::remove_from_selection(Urho3D::Node * node)
         if (node == iter->first_)
         {
             selection.Erase(iter);
-            es->set_selected(node, false);
             return;
         }
         bool fnd = iter->second_.Remove(node);
         if (fnd)
-        {
-            es->set_selected(node, false);
             return;
-        }
         ++iter;
     }
 }
@@ -155,51 +227,142 @@ void EditorSelectionController::set_camera(Urho3D::Camera * cam)
     cam_comp = cam;
 }
 
-void EditorSelectionController::set_scene(Urho3D::Scene * scn)
-{
-    scene = scn;
-}
-
 Urho3D::Camera * EditorSelectionController::get_camera()
 {
     return cam_comp;
 }
 
-Urho3D::Scene * EditorSelectionController::get_scene()
-{
-    return scene;
-}
-
-void EditorSelectionController::release()
-{
-    UnsubscribeFromAllEvents();
-}
-
 void EditorSelectionController::handle_update(Urho3D::StringHash event_type,
                                               Urho3D::VariantMap & event_data)
 {
-    if (frame_translation != fvec3())
+    ResourceCache * cache = GetSubsystem<ResourceCache>();
+    static HashMap<Material *, bool> mat_map;
+    Urho3D::Vector<Hex_Tile_Grid::Tile_Item> allowed_items;
+    
+    allowed_items.Resize(selection.Size());
+    int i = 0;
+    auto sel_iter_al = selection.Begin();
+    while (sel_iter_al != selection.End())
     {
-        auto iter = selection.Begin();
-        while (iter != selection.End())
-        {
-            if (iter->second_.Empty())
-            {
-                iter->first_->Translate(frame_translation, TS_WORLD);
-            }
-            else
-            {
-                for (int i = 0; i < iter->second_.Size(); ++i)
-                    iter->second_[i]->Translate(frame_translation, TS_WORLD);
-            }
-            ++iter;
-        }
+        int node_id = sel_iter_al->first_->GetID();
+        allowed_items[i].node_id_ = node_id;
+        ++i;
+        ++sel_iter_al;
     }
+    
+    auto iter = selection.Begin();
+    while (iter != selection.End())
+    {
+        EditorSelector * es = iter->first_->GetComponent<EditorSelector>();
+        String str = es->selection_material();
+        Material * mat = cache->GetResource<Material>(str);
+
+        auto fiter = mat_map.Find(mat);
+        if (fiter == mat_map.End())
+            mat_map[mat] = true;
+
+        if (iter->second_.Empty())
+        {
+            Hex_Tile_Grid * tg = scene->GetComponent<Hex_Tile_Grid>();
+            Tile_Occupier * occ = iter->first_->GetComponent<Tile_Occupier>();
+
+            uint32_t node_id = iter->first_->GetID();
+            iter->first_->Translate(frame_translation, TS_WORLD);
+
+            if (occ != nullptr)
+            {
+                auto occ_tiles =
+                    tg->occupied(occ->tile_spaces(), iter->first_->GetPosition(), allowed_items);
+                mat_map[mat] = mat_map[mat] && occ_tiles.Empty();
+            }
+        }
+        else
+        {
+            for (int i = 0; i < iter->second_.Size(); ++i)
+            {
+                Hex_Tile_Grid * tg = scene->GetComponent<Hex_Tile_Grid>();
+                Tile_Occupier * occ = iter->first_->GetComponent<Tile_Occupier>();
+
+                uint32_t node_id = iter->first_->GetID();
+                iter->second_[i]->Translate(frame_translation, TS_WORLD);
+
+                if (occ != nullptr)
+                {
+                    auto occ_tiles = tg->occupied(
+                        occ->tile_spaces(), iter->first_->GetPosition(), allowed_items);
+                    mat_map[mat] = mat_map[mat] && occ_tiles.Empty();
+                }
+            }
+        }
+        ++iter;
+    }
+    total_drag_translation += frame_translation;
     frame_translation = fvec3();
+
+    if (do_snap)
+    {
+        snap_selection();
+        do_snap = false;
+    }
+
+    auto mat_iter = mat_map.Begin();
+    while (mat_iter != mat_map.End())
+    {
+        move_allowed = true;
+        fvec4 color(0.0f, 0.0f, 1.0f, 1.0f);
+        if (!mat_iter->second_)
+        {
+            move_allowed = false;
+            color = fvec4(1.0f, 0.0f, 0.0f, 1.0f);
+            mat_iter->second_ = true;
+        }
+
+        mat_iter->first_->SetShaderParameter("OutlineColor", color);
+        ++mat_iter;
+    }
+
+    auto sel_comp_iter = scene_sel_comps.Begin();
+    while (sel_comp_iter != scene_sel_comps.End())
+    {
+        Node * nd = (*sel_comp_iter)->GetNode();
+        StaticModel * md = nd->GetComponent<StaticModel>();
+        if (md->IsInstanceOf<StaticModelGroup>())
+        {
+            StaticModelGroup * smg = static_cast<StaticModelGroup *>(md);
+            for (int i = 0; i < smg->GetNumInstanceNodes(); ++i)
+            {
+                Node * inst_node = smg->GetInstanceNode(i);
+
+                (*sel_comp_iter)->set_selected(inst_node, is_selected(nd, inst_node));
+            }
+        }
+        else
+        {
+            (*sel_comp_iter)->set_selected(nd, is_selected(nd));
+        }
+        ++sel_comp_iter;
+    }
 }
 
-void EditorSelectionController::move_selection(const fvec3 & amount)
-{}
+void EditorSelectionController::snap_selection()
+{
+    auto sel_iter = selection.Begin();
+    while (sel_iter != selection.End())
+    {
+        fvec3 pos = sel_iter->first_->GetPosition();
+        Hex_Tile_Grid::snap_to_grid(pos);
+        sel_iter->first_->SetPosition(pos);
+        ++sel_iter;
+    }
+    sel_iter = sel_rect_selection.Begin();
+    while (sel_iter != sel_rect_selection.End())
+    {
+        fvec3 pos = sel_iter->first_->GetPosition();
+        Hex_Tile_Grid::snap_to_grid(pos);
+        sel_iter->first_->SetPosition(pos);
+        ++sel_iter;
+    }
+}
 
 void EditorSelectionController::setup_input_context(input_context * ctxt)
 {
@@ -252,6 +415,33 @@ void EditorSelectionController::setup_input_context(input_context * ctxt)
     it.condition.key = KEY_Y;
     it.name = Y_MOVE_HELD;
     ctxt->create_trigger(it);
+
+    it.condition.key = KEY_O;
+    it.trigger_state = t_begin;
+    it.name = TOGGLE_OCC_DEBUG;
+    ctxt->create_trigger(it);
+}
+
+bool EditorSelectionController::is_selected(Urho3D::Node * obj_node, Urho3D::Node * sub_obj_node)
+{
+    auto fiter = selection.Find(obj_node);
+    if (fiter != selection.End())
+    {
+        if (sub_obj_node == nullptr)
+            return true;
+
+        return fiter->second_.Contains(sub_obj_node);
+    }
+
+    auto sq_iter = sel_rect_selection.Find(obj_node);
+    if (sq_iter != sel_rect_selection.End())
+    {
+        if (sub_obj_node == nullptr)
+            return true;
+
+        return sq_iter->second_.Contains(sub_obj_node);
+    }
+    return false;
 }
 
 void EditorSelectionController::add_to_selection_from_rect()
@@ -293,6 +483,7 @@ void EditorSelectionController::add_to_selection_from_rect()
     Octree * octree = scene->GetComponent<Octree>();
     FrustumOctreeQuery fq(res, f, DRAWABLE_GEOMETRY);
     octree->GetDrawables(fq);
+    sel_rect_selection.Clear();
     for (int i = 0; i < res.Size(); ++i)
     {
         Node * nd = res[i]->GetNode();
@@ -314,7 +505,7 @@ void EditorSelectionController::add_to_selection_from_rect()
                 BoundingBox transf_bb = bb.Transformed(inst_nd->GetTransform());
                 if (f.IsInside(transf_bb) == Intersection::INSIDE)
                 {
-                    es->set_selected(inst_nd, true);
+                    //es->set_selected(inst_nd, true);
                     if (!selection[nd].Contains(inst_nd) && nd != inst_nd)
                         selection[nd].Push(inst_nd);
                 }
@@ -326,30 +517,35 @@ void EditorSelectionController::add_to_selection_from_rect()
 
             PhysicsWorld * phys = scene->GetComponent<PhysicsWorld>();
 
+            bool left_drag = (norm_sel_pos.x_ < selection_rect.z_);
+
             bool res = false;
             auto fiter = cached_raycasts.Find(nd);
-            if (fiter == cached_raycasts.End())
+            if (left_drag || f.IsInside(bb) == Intersection::INSIDE)
             {
-                // Do a raycast to the center and each point of the objects bounding box
-                PhysicsRaycastResult ray_result;
-                fvec3 direction = nd->GetPosition() - cam_comp->GetNode()->GetPosition();
-                direction.Normalize();
-                Ray cast_ray(cam_comp->GetNode()->GetPosition(), direction);
-                // Get the closest object for selection
-                phys->RaycastSingle(ray_result, cast_ray, 100.0f);
-                if (ray_result.body_ != nullptr)
-                    res = (ray_result.body_->GetNode() == nd);
-                cached_raycasts[nd] = res;
-            }
-            else
-            {
-                res = fiter->second_;
+                if (fiter == cached_raycasts.End())
+                {
+                    // Do a raycast to the center and each point of the objects bounding box
+                    PhysicsRaycastResult ray_result;
+                    fvec3 direction = nd->GetPosition() - cam_comp->GetNode()->GetPosition();
+                    direction.Normalize();
+                    Ray cast_ray(cam_comp->GetNode()->GetPosition(), direction);
+                    // Get the closest object for selection
+                    phys->RaycastSingle(ray_result, cast_ray, 100.0f);
+                    if (ray_result.body_ != nullptr)
+                        res = (ray_result.body_->GetNode() == nd);
+                    cached_raycasts[nd] = res;
+                }
+                else
+                {
+                    res = fiter->second_;
+                }
             }
 
             if (res)
             {
-                es->set_selected(nd, true);
-                selection[nd].Clear();
+                //es->set_selected(nd, true);
+                sel_rect_selection[nd].Clear();
             }
         }
     }
@@ -364,6 +560,10 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
     Vector2 norm_mdelta = event_data[InputTrigger::P_NORM_MDELTA].GetVector2();
     int wheel = event_data[InputTrigger::P_MOUSE_WHEEL].GetInt();
 
+    if (name == hashes[8])
+    {
+        toggle_occ_debug_selection();
+    }
     if (name == hashes[3])
     {
         // drag_point.w_ is a value used to detect if we are dragging - reset to 0 when draggin stops and set to 1 when
@@ -455,6 +655,18 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
         {
             if (ui_selection_rect->IsVisible())
             {
+                // copy our selection and clear it
+                auto sel_iter = sel_rect_selection.Begin();
+                while (sel_iter != sel_rect_selection.End())
+                {
+                    auto & node_vec = selection[sel_iter->first_];
+                    for (int i = 0; i < sel_iter->second_.Size(); ++i)
+                    {
+                        if (!node_vec.Contains(sel_iter->second_[i]))
+                            node_vec.Push(sel_iter->second_[i]);
+                    }
+                    ++sel_iter;
+                }
                 cached_raycasts.Clear();
                 ui_selection_rect->SetVisible(false);
             }
@@ -512,7 +724,7 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
                     if (!es->is_selected(nd))
                     {
                         clear_selection();
-                        es->set_selected(nd, true);
+                        //es->set_selected(nd, true);
                         if (!selection[cr.node_].Contains(nd) && cr.node_ != nd)
                             selection[cr.node_].Push(nd);
                     }
@@ -526,9 +738,28 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
                     {
                         if (ui_selection_rect->IsVisible())
                         {
+                            // copy our selection and clear it
+                            auto sel_iter = sel_rect_selection.Begin();
+                            while (sel_iter != sel_rect_selection.End())
+                            {
+                                auto & node_vec = selection[sel_iter->first_];
+                                for (int i = 0; i < sel_iter->second_.Size(); ++i)
+                                {
+                                    if (!node_vec.Contains(sel_iter->second_[i]))
+                                        node_vec.Push(sel_iter->second_[i]);
+                                }
+                                ++sel_iter;
+                            }
+
                             cached_raycasts.Clear();
                             ui_selection_rect->SetVisible(false);
                         }
+                        if (!move_allowed)
+                        {
+                            translate_selection(-total_drag_translation);
+                        }
+                        total_drag_translation = fvec3();
+                        do_snap = true;
                     }
                 }
                 else if (name == hashes[2])
@@ -539,7 +770,7 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
                     }
                     else
                     {
-                        es->set_selected(nd, true);
+                        //es->set_selected(nd, true);
                         if (!selection[cr.node_].Contains(nd) && cr.node_ != nd)
                             selection[cr.node_].Push(nd);
                     }
@@ -576,10 +807,28 @@ void EditorSelectionController::handle_input_event(Urho3D::StringHash event_type
             {
                 if (ui_selection_rect->IsVisible())
                 {
+                    // copy our selection and clear it
+                    auto sel_iter = sel_rect_selection.Begin();
+                    while (sel_iter != sel_rect_selection.End())
+                    {
+                        auto & node_vec = selection[sel_iter->first_];
+                        for (int i = 0; i < sel_iter->second_.Size(); ++i)
+                        {
+                            if (!node_vec.Contains(sel_iter->second_[i]))
+                                node_vec.Push(sel_iter->second_[i]);
+                        }
+                        ++sel_iter;
+                    }
+
                     cached_raycasts.Clear();
                     ui_selection_rect->SetVisible(false);
                 }
             }
         }
     }
+}
+
+void EditorSelectionController::register_context(Urho3D::Context * ctxt)
+{
+    ctxt->RegisterFactory<EditorSelectionController>();
 }

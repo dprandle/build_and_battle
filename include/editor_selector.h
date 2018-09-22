@@ -32,6 +32,12 @@ class EditorSelector : public Component
 
     const String & selection_material();
 
+    static void register_context(Urho3D::Context * context);
+
+    protected:
+
+    void OnNodeSet(Urho3D::Node * node) override;
+
   protected:
 
     //void OnNodeSet(Node * node) override;

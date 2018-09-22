@@ -1,4 +1,5 @@
 #include <editor_selector.h>
+#include <Urho3D/Core/Context.h>
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Scene.h>
@@ -14,6 +15,10 @@ EditorSelector::EditorSelector(Urho3D::Context * context)
 
 void EditorSelector::set_selected(Urho3D::Node * node, bool select)
 {
+    bool cur_selected = is_selected(node);
+    if (select == cur_selected)
+        return;
+    
     Scene * scn = GetScene();
     if (scn == nullptr)
         return;
@@ -98,9 +103,6 @@ void EditorSelector::toggle_selected(Urho3D::Node * node)
 
 void EditorSelector::set_render_component_to_control(int comp_id)
 {
-    if (comp_id == id_of_component_to_control)
-        return;
-
     id_of_component_to_control = comp_id;
     
     if (sel_render_comp != nullptr)
@@ -136,4 +138,22 @@ void EditorSelector::set_selection_material(const Urho3D::String & name)
 const Urho3D::String & EditorSelector::selection_material()
 {
     return selected_mat;
+}
+
+void EditorSelector::register_context(Urho3D::Context * context)
+{
+    context->RegisterFactory<EditorSelector>();    
+}
+
+
+void EditorSelector::OnNodeSet(Urho3D::Node * node)
+{
+    Component * comp = node->GetComponent<StaticModelGroup>();
+    if (comp == nullptr)
+    {
+        comp = node->GetComponent<StaticModel>();
+        if (comp != nullptr)
+            set_render_component_to_control(comp->GetID());
+    }
+    Component::OnNodeSet(node);
 }

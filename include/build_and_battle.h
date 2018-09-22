@@ -8,11 +8,6 @@
 
 using namespace Urho3D;
 
-#define X_GRID 0.43f
-#define Y_GRID 0.745f
-#define Z_GRID 0.225f
-#define ROUND_FACTOR 0.5f
-
 namespace Urho3D
 {
 class Node;
@@ -25,14 +20,6 @@ class EditorCameraController;
 class InputTranslator;
 class InputMap;
 struct input_context;
-
-Vector3 grid_to_world(const IntVector3 & pSpace, const Vector3 & pOrigin = Vector3());
-void world_snap(Vector3 & world_);
-int32_t index_to_world_x(float x_, bool offset_);
-int32_t index_to_world__y(float y_);
-int32_t index_to_world__z(float z_);
-IntVector3 world_to_grid(const Vector3 & world_);
-
 
 const float TOUCH_SENSITIVITY = 2.0f;
 
@@ -53,6 +40,12 @@ public:
 
 private:
 
+    void handle_input_event(StringHash eventType, VariantMap& eventData);
+
+    void handle_scene_update(StringHash event_type, VariantMap& event_data);
+
+    void handle_post_render_update(StringHash event_type, VariantMap& event_data);
+
     bool init();
 
     void release();
@@ -69,15 +62,11 @@ private:
 
     InputTranslator * input_translator;
 
-    EditorSelectionController * editor_selection;
-    
     EditorCameraController * camera_controller;
 
     InputMap * input_map;
 
-    void handle_input_event(StringHash eventType, VariantMap& eventData);
-
-    void handle_scene_update(StringHash event_type, VariantMap& event_data);
+    bool m_draw_debug;
 
 };
 
