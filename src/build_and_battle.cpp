@@ -4,6 +4,7 @@
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/UI/Button.h>
 #include <Urho3D/UI/BorderImage.h>
+#include <Urho3D/UI/UIEvents.h>
 
 #include <Urho3D/Physics/RigidBody.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
@@ -43,19 +44,18 @@
 #include <input_translator.h>
 #include <build_and_battle.h>
 
-
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
     ParseArguments(argc, argv);
-    Context * context(new Context());
-    Build_And_Battle * bb(new Build_And_Battle(context));
+    Context *context(new Context());
+    Build_And_Battle *bb(new Build_And_Battle(context));
     int ret = bb->run();
     delete bb;
     delete context;
     return ret;
 }
 
-Build_And_Battle::Build_And_Battle(Context * context)
+Build_And_Battle::Build_And_Battle(Context *context)
     : Object(context),
       engine(new Engine(context)),
       scene(nullptr),
@@ -64,7 +64,8 @@ Build_And_Battle::Build_And_Battle(Context * context)
       camera_controller(new EditorCameraController(context)),
       input_map(new InputMap()),
       m_draw_debug(false)
-{}
+{
+}
 
 Build_And_Battle::~Build_And_Battle()
 {
@@ -74,22 +75,22 @@ Build_And_Battle::~Build_And_Battle()
     delete input_map;
 }
 
-void Build_And_Battle::handle_post_render_update(StringHash event_type, VariantMap& event_data)
+void Build_And_Battle::handle_post_render_update(StringHash event_type, VariantMap &event_data)
 {
     if (m_draw_debug)
     {
         if (scene != nullptr)
         {
-            // PhysicsWorld * pw = scene->GetComponent<PhysicsWorld>();
-            // if (pw != nullptr)
-            //     pw->DrawDebugGeometry(false);
-            // Octree * oc = scene->GetComponent<Octree>();
-            // if (oc != nullptr)
-            //     oc->DrawDebugGeometry(true);
-            // EditorSelectionController * esc = scene->GetComponent<EditorSelectionController>();
-            // if (esc != nullptr)
-            //     esc->DrawDebugGeometry(true);
-            Hex_Tile_Grid * tg = scene->GetComponent<Hex_Tile_Grid>();
+            PhysicsWorld *pw = scene->GetComponent<PhysicsWorld>();
+            if (pw != nullptr)
+                pw->DrawDebugGeometry(false);
+            Octree *oc = scene->GetComponent<Octree>();
+            if (oc != nullptr)
+                oc->DrawDebugGeometry(true);
+            EditorSelectionController *esc = scene->GetComponent<EditorSelectionController>();
+            if (esc != nullptr)
+                esc->DrawDebugGeometry(true);
+            Hex_Tile_Grid *tg = scene->GetComponent<Hex_Tile_Grid>();
             if (tg != nullptr)
                 tg->DrawDebugGeometry(false);
         }
@@ -99,12 +100,14 @@ void Build_And_Battle::handle_post_render_update(StringHash event_type, VariantM
 bool Build_And_Battle::init()
 {
     VariantMap params;
-    GetSubsystem<FileSystem>()->SetCurrentDir(GetSubsystem<FileSystem>()->GetProgramDir());
     params[EP_WINDOW_TITLE] = GetTypeName();
     params[EP_LOG_NAME] = GetTypeName() + ".log";
     params[EP_FULL_SCREEN] = false;
     params[EP_WINDOW_RESIZABLE] = true;
     params[EP_SOUND] = true;
+    params[EP_WINDOW_WIDTH] = 1920;
+    params[EP_WINDOW_HEIGHT] = 1080;
+    params[EP_HIGH_DPI] = true;
 
     // Register custom systems
     context_->RegisterSubsystem(input_translator);
@@ -130,10 +133,14 @@ bool Build_And_Battle::init()
     SubscribeToEvent(E_SCENEUPDATE, URHO3D_HANDLER(Build_And_Battle, handle_scene_update));
     SubscribeToEvent(E_INPUT_TRIGGER, URHO3D_HANDLER(Build_And_Battle, handle_input_event));
     SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Build_And_Battle, handle_post_render_update));
+    SubscribeToEvent(E_CLICK, URHO3D_HANDLER(Build_And_Battle, handle_ui_event));
 
     create_visuals();
-
     return true;
+}
+
+void Build_And_Battle::handle_ui_event(StringHash eventType, VariantMap &eventData)
+{
 }
 
 int Build_And_Battle::run()
@@ -160,96 +167,96 @@ void Build_And_Battle::release()
 
 void Build_And_Battle::create_visuals()
 {
-    Graphics * graphics = GetSubsystem<Graphics>();
+    Graphics *graphics = GetSubsystem<Graphics>();
     graphics->SetWindowTitle("Build and Battle");
 
     // Get default style
-    ResourceCache * cache = GetSubsystem<ResourceCache>();
-    XMLFile * xmlFile = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
+    ResourceCache *cache = GetSubsystem<ResourceCache>();
+    XMLFile *xmlFile = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
 
     // Create console
-    Console * console = engine->CreateConsole();
+    Console *console = engine->CreateConsole();
     console->SetDefaultStyle(xmlFile);
     console->GetBackground()->SetOpacity(0.8f);
     console->GetBackground()->SetOpacity(0.8f);
 
+    auto ui = GetSubsystem<UI>();
+    ui->SetScale(2.0);
+
     // Create debug HUD.
-    DebugHud * debugHud = engine->CreateDebugHud();
+    DebugHud *debugHud = engine->CreateDebugHud();
     debugHud->SetDefaultStyle(xmlFile);
 
-    UI * usi = GetSubsystem<UI>();
-    UIElement * root = usi->GetRoot();
-    Button * btn = new Button(context_);
+    UIElement *root = ui->GetRoot();
+    Button *btn = new Button(context_);    
     btn->SetName("Button1");
-    btn->SetSize(IntVector2(200, 200));
+    btn->SetSize(IntVector2(1920, 1080));
     btn->SetColor(Color(0.7f, 0.6f, 0.1f, 0.4f));
     root->AddChild(btn);
 
     //Button *
-    Context * ctxt = GetContext();
+    Context *ctxt = GetContext();
     scene = new Scene(ctxt);
     scene->CreateComponent<DebugRenderer>();
     scene->CreateComponent<Octree>();
-    PhysicsWorld * phys = scene->CreateComponent<PhysicsWorld>();
-    Hex_Tile_Grid * tg = scene->CreateComponent<Hex_Tile_Grid>();
-    EditorSelectionController * editor_selection = scene->CreateComponent<EditorSelectionController>();
-    phys->SetGravity(fvec3(0.0f,0.0f,-9.81f));
+    PhysicsWorld *phys = scene->CreateComponent<PhysicsWorld>();
+    Hex_Tile_Grid *tg = scene->CreateComponent<Hex_Tile_Grid>();
+    EditorSelectionController *editor_selection = scene->CreateComponent<EditorSelectionController>();
+    phys->SetGravity(fvec3(0.0f, 0.0f, -9.81f));
 
-    Node * editor_cam_node = new Node(ctxt);
-    Camera * editor_cam = editor_cam_node->CreateComponent<Camera>();
+    Node *editor_cam_node = new Node(ctxt);
+    Camera *editor_cam = editor_cam_node->CreateComponent<Camera>();
     editor_cam_node->SetPosition(Vector3(8, -8, 5));
     editor_cam_node->SetDirection(Vector3(0, 0, -1));
     editor_cam_node->Pitch(-70.0f);
-    
+
     //editor_cam_node->Rot
     camera_controller->set_camera(editor_cam);
     editor_selection->set_camera(editor_cam);
 
-    Renderer * rnd = GetSubsystem<Renderer>();
-    
-    Viewport * vp = new Viewport(ctxt, scene, editor_cam);
+    Renderer *rnd = GetSubsystem<Renderer>();
+
+    Viewport *vp = new Viewport(ctxt, scene, editor_cam);
     vp->SetDrawDebug(true);
 
     rnd->SetViewport(0, vp);
-    RenderPath * rp = new RenderPath;
+    RenderPath *rp = new RenderPath;
     rp->Load(cache->GetResource<XMLFile>("RenderPaths/DeferredWithOutlines.xml"));
     vp->SetRenderPath(rp);
 
-    Node * skyNode = scene->CreateChild("Sky");
+    Node *skyNode = scene->CreateChild("Sky");
     skyNode->Rotate(Quaternion(90.0f, Vector3(1, 0, 0)));
-    Skybox * skybox = skyNode->CreateComponent<Skybox>();
+    Skybox *skybox = skyNode->CreateComponent<Skybox>();
     skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
     skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
     // Create a directional light
-    Node * light_node = scene->CreateChild("Dir_Light");
+    Node *light_node = scene->CreateChild("Dir_Light");
     light_node->SetDirection(Vector3(-0.0f, -0.5f, -1.0f));
-    Light * light = light_node->CreateComponent<Light>();
+    Light *light = light_node->CreateComponent<Light>();
     light->SetLightType(LIGHT_DIRECTIONAL);
     light->SetColor(Color(1.0f, 1.0f, 1.0f));
     light->SetSpecularIntensity(5.0f);
     light->SetBrightness(1.0f);
 
-    Technique * tech = cache->GetResource<Technique>("Techniques/DiffNormal.xml");
-    Technique * tech_outline = cache->GetResource<Technique>("Techniques/DiffNormalOutline.xml");
+    Technique *tech = cache->GetResource<Technique>("Techniques/DiffNormal.xml");
+    Technique *tech_outline = cache->GetResource<Technique>("Techniques/DiffNormalOutline.xml");
 
     // Create StaticModelGroups in the scene
-    StaticModelGroup * lastGroup = nullptr;
-    Material * grass_tile = cache->GetResource<Material>("Materials/Tiles/Grass.xml");
-    Material * grass_tile_selected = cache->GetResource<Material>("Materials/Tiles/GrassSelected.xml");
+    StaticModelGroup *lastGroup = nullptr;
+    Material *grass_tile = cache->GetResource<Material>("Materials/Tiles/Grass.xml");
+    Material *grass_tile_selected = cache->GetResource<Material>("Materials/Tiles/GrassSelected.xml");
     grass_tile_selected->SetShaderParameter("OutlineEnable", true);
-
 
     //<parameter name="OutlineWidth" value="0.01" />
     //<parameter name="OutlineColor" value="1 1 0 1" />
-    Model * mod = cache->GetResource<Model>("Models/Tiles/Grass.mdl");
+    Model *mod = cache->GetResource<Model>("Models/Tiles/Grass.mdl");
 
-    input_context * in_context = input_map->create_context("global_context");
+    input_context *in_context = input_map->create_context("global_context");
     camera_controller->setup_input_context(in_context);
     editor_selection->setup_input_context(in_context);
     input_translator->push_context(in_context);
     setup_global_keys(in_context);
-
 
     int cnt = 0;
     for (int y = 0; y < 20; ++y)
@@ -259,59 +266,43 @@ void Build_And_Battle::create_visuals()
             for (int z = 0; z < 2; ++z)
             {
 
-            // if ((z == 1) && (x < 5 || x > 15 || y < 5 || y > 15))
-            //     continue;
+                Node *tile_node = scene->CreateChild("Grass_Tile_" + String(cnt));
 
-            
-            // if (!lastGroup || lastGroup->GetNumInstanceNodes() >= 25 * 25)
-            // {
-            //     Node * tile_group_node = scene->CreateChild("Grass_Tile_Group");
-            //     EditorSelector * sel = tile_group_node->CreateComponent<EditorSelector>();
-            //     lastGroup = tile_group_node->CreateComponent<StaticModelGroup>();
-            //     lastGroup->SetModel(mod);
-            //     lastGroup->SetMaterial(grass_tile);
-            //     sel->set_selection_material("Materials/Tiles/GrassSelected.xml");
-            //     sel->set_render_component_to_control(lastGroup->GetID());
-            // }
+                StaticModel *modc = tile_node->CreateComponent<StaticModel>();
+                modc->SetModel(mod);
+                modc->SetMaterial(grass_tile);
 
-            Node * tile_node = scene->CreateChild("Grass_Tile_" + String(cnt));
+                EditorSelector *sel = tile_node->CreateComponent<EditorSelector>();
+                sel->set_selection_material("Materials/Tiles/GrassSelected.xml");
+                sel->set_selected(tile_node, false);
 
-            StaticModel * modc = tile_node->CreateComponent<StaticModel>();
-            modc->SetModel(mod);
-            modc->SetMaterial(grass_tile);
+                CollisionShape *cs = tile_node->CreateComponent<CollisionShape>();
+                const BoundingBox &bb = modc->GetBoundingBox();
+                cs->SetBox(bb.Size());
 
-            EditorSelector * sel = tile_node->CreateComponent<EditorSelector>();
-            sel->set_selection_material("Materials/Tiles/GrassSelected.xml");
-            sel->set_selected(tile_node, false);
+                RigidBody *rb = tile_node->CreateComponent<RigidBody>();
+                rb->SetMass(0.0f);
+                // if (z == 1)
+                //     rb->SetMass(10.0f);
+                // rb->SetFriction(0.1f);
+                // rb->SetRestitution(0.9f);
 
-            CollisionShape * cs = tile_node->CreateComponent<CollisionShape>();
-            const BoundingBox & bb = modc->GetBoundingBox();
-            cs->SetBox(bb.Size());
+                Tile_Occupier *occ = tile_node->CreateComponent<Tile_Occupier>();
+                tile_node->AddListener(occ);
 
-            RigidBody * rb = tile_node->CreateComponent<RigidBody>();
-            rb->SetMass(0.0f);
-            // if (z == 1)
-            //     rb->SetMass(10.0f);
-            // rb->SetFriction(0.1f);
-            // rb->SetRestitution(0.9f);
+                tile_node->SetPosition(Hex_Tile_Grid::grid_to_world(ivec3(x, y, z * 30.0f)));
+                tile_node->SetRotation(Quaternion(90.0f, fvec3(1.0f, 0.0f, 0.0f)));
 
-            Tile_Occupier * occ = tile_node->CreateComponent<Tile_Occupier>();
-            tile_node->AddListener(occ);
-
-            tile_node->SetPosition(Hex_Tile_Grid::grid_to_world(ivec3(x, y, z*30.0f)));
-            tile_node->SetRotation(Quaternion(90.0f, fvec3(1.0f, 0.0f, 0.0f)));
-
-
-            //lastGroup->AddInstanceNode(tile_node);
-            ++cnt;
+                //lastGroup->AddInstanceNode(tile_node);
+                ++cnt;
             }
         }
     }
 }
 
-void Build_And_Battle::setup_global_keys(input_context * ctxt)
+void Build_And_Battle::setup_global_keys(input_context *ctxt)
 {
-    input_context * input_ctxt = input_map->get_context(StringHash("global_context"));
+    input_context *input_ctxt = input_map->get_context(StringHash("global_context"));
 
     if (ctxt == nullptr)
         return;
@@ -344,15 +335,14 @@ void Build_And_Battle::setup_global_keys(input_context * ctxt)
     it.condition.key = KEY_F3;
     it.name = "ToggleDebugGeometry";
     ctxt->create_trigger(it);
-
 }
 
-void Build_And_Battle::handle_scene_update(StringHash /*eventType*/, VariantMap & event_data)
+void Build_And_Battle::handle_scene_update(StringHash /*eventType*/, VariantMap &event_data)
 {
 }
 
 void Build_And_Battle::handle_input_event(StringHash event_type,
-                                          VariantMap & event_data)
+                                          VariantMap &event_data)
 {
     StringHash name = event_data[InputTrigger::P_TRIGGER_NAME].GetStringHash();
     int state = event_data[InputTrigger::P_TRIGGER_STATE].GetInt();
@@ -362,7 +352,7 @@ void Build_And_Battle::handle_input_event(StringHash event_type,
 
     if (name == StringHash("CloseWindow"))
     {
-        Console * console = GetSubsystem<Console>();
+        Console *console = GetSubsystem<Console>();
         if (console->IsVisible())
             console->SetVisible(false);
         else
@@ -382,7 +372,7 @@ void Build_And_Battle::handle_input_event(StringHash event_type,
     }
     else if (name == StringHash("TakeScreenshot"))
     {
-        Graphics * graphics = GetSubsystem<Graphics>();
+        Graphics *graphics = GetSubsystem<Graphics>();
         Image screenshot(context_);
         graphics->TakeScreenShot(screenshot);
         // Here we save in the Data folder with date and time appended

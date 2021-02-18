@@ -42,6 +42,8 @@ private:
 
     void handle_input_event(StringHash eventType, VariantMap& eventData);
 
+    void handle_ui_event(StringHash eventType, VariantMap& eventData);
+
     void handle_scene_update(StringHash event_type, VariantMap& event_data);
 
     void handle_post_render_update(StringHash event_type, VariantMap& event_data);

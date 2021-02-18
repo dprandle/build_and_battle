@@ -8,7 +8,7 @@
 
 static const int32_t MOUSEB_MOVE = 32;
 static const int32_t MOUSEB_WHEEL = 64;
-static const int32_t MOUSEB_ANY = 128;
+static const int32_t MOUSEB_ANYB = 128;
 
 enum trigger_state
 {
