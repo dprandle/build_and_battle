@@ -28,20 +28,20 @@
 
 #define PI 3.14159265359f
 
+using Urho3D::AreaAllocator;
 using Urho3D::Color;
-using Urho3D::Plane;
-using Urho3D::Sphere;
 using Urho3D::Frustum;
 using Urho3D::FrustumPlane;
-using Urho3D::AreaAllocator;
+using Urho3D::HashMap;
+using Urho3D::HashSet;
+using Urho3D::LinkedList;
+using Urho3D::List;
+using Urho3D::Plane;
+using Urho3D::Polyhedron;
+using Urho3D::Sphere;
 using Urho3D::String;
 using Urho3D::StringHash;
 using Urho3D::Vector;
-using Urho3D::HashMap;
-using Urho3D::HashSet;
-using Urho3D::List;
-using Urho3D::LinkedList;
-using Urho3D::Polyhedron;
 
 using fray = Urho3D::Ray;
 using frect = Urho3D::Rect;
@@ -61,17 +61,22 @@ using fquat = Urho3D::Quaternion;
 template<class T>
 T degrees(const T & val_)
 {
-	return (180 / PI) * val_;
+    return (180 / PI) * val_;
 }
 
 template<class T>
 T radians(const T & val_)
 {
-	return (PI / 180) * val_;
+    return (PI / 180) * val_;
 }
 
 fmat4 perspective_from(float fov_, float aspect_ratio_, float z_near_, float z_far_);
 
-fmat4 perspective_from(float near_left, float near_right, float near_top, float near_bottom, float z_near, float z_far);
+fmat4 perspective_from(float near_left,
+                       float near_right,
+                       float near_top,
+                       float near_bottom,
+                       float z_near,
+                       float z_far);
 
 fmat4 ortho_from(float left_, float right_, float top_, float bottom_, float near_, float far_);

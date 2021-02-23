@@ -1,40 +1,33 @@
 #include <mtdebug_print.h>
 #include <Urho3D/IO/Log.h>
+#include <iostream>
 
 using namespace Urho3D;
 
-Mutex MTDebug_Print::m_mtx;
-
-MTDebug_Print::MTDebug_Print(bool auto_spacing, bool auto_newline, urho_log_type logtype):
-    str(),
-    ss(),
-    autspc(auto_spacing),
-    autonln(auto_newline),
-    lt(logtype)
+MTDebug_Print::MTDebug_Print(bool auto_spacing, bool auto_newline, Urho_Log_Type logtype)
+    : str_(), ss_(), autspc_(auto_spacing), autonln_(auto_newline), lt_(logtype)
 {
 }
 
 MTDebug_Print::~MTDebug_Print()
 {
-    m_mtx.Acquire();
-    String msg(ss.str().c_str());
-    switch (lt)
+    String msg(ss_.str().c_str());
+    switch (lt_)
     {
-        case(urho_lt_info):
-            URHO3D_LOGINFO(msg);
-            break;
-        case(urho_lt_warning):
-            URHO3D_LOGWARNING(msg);
-            break;
-        case(urho_lt_error):
-            URHO3D_LOGERROR(msg);
-            break;
-        case(urho_lt_debug):
-            URHO3D_LOGDEBUG(msg);
-            break;
-        case(urho_lt_trace):
-            URHO3D_LOGTRACE(msg);
-            break;
+    case (URHO_LT_INFO):
+        URHO3D_LOGINFO(msg);
+        break;
+    case (URHO_LT_WARNING):
+        URHO3D_LOGWARNING(msg);
+        break;
+    case (URHO_LT_ERROR):
+        URHO3D_LOGERROR(msg);
+        break;
+    case (URHO_LT_DEBUG):
+        URHO3D_LOGDEBUG(msg);
+        break;
+    case (URHO_LT_TRACE):
+        URHO3D_LOGTRACE(msg);
+        break;
     }
-	m_mtx.Release();
 }

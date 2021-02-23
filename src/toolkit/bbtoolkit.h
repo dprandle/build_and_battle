@@ -1,5 +1,4 @@
-#ifndef BUILD_AND_BATTLE_H
-#define BUILD_AND_BATTLE_H
+#pragma once
 
 #include <Urho3D/Engine/Application.h>
 #include <Urho3D/Core/Object.h>
@@ -15,24 +14,28 @@ class Scene;
 class Sprite;
 }
 
-class EditorSelectionController;
-class EditorCameraController;
-class InputTranslator;
-class InputMap;
-struct input_context;
+class Input_Translator;
+class Input_Map;
+struct Input_Context;
+
+namespace bbtk
+{
+
+class Selection_Controller;
+class Camera_Controller;
 
 const float TOUCH_SENSITIVITY = 2.0f;
 
-class Build_And_Battle : public Object
+class BBToolkit : public Object
 {
     // Enable type information.
-    URHO3D_OBJECT(Build_And_Battle, Object);
+    URHO3D_OBJECT(BBToolkit, Object);
 
 public:
     
-    Build_And_Battle(Context* context);
+    BBToolkit(Context* context);
 
-    ~Build_And_Battle();
+    ~BBToolkit();
 
     int run();
 
@@ -44,6 +47,8 @@ private:
 
     void handle_ui_event(StringHash eventType, VariantMap& eventData);
 
+    void handle_log_message(StringHash event_type, Urho3D::VariantMap & event_data);
+
     void handle_scene_update(StringHash event_type, VariantMap& event_data);
 
     void handle_post_render_update(StringHash event_type, VariantMap& event_data);
@@ -52,24 +57,24 @@ private:
 
     void release();
 
-    void setup_global_keys(input_context * ctxt);
+    void setup_global_keys(Input_Context * ctxt);
 
     void create_visuals();
 
-    Engine * engine;
+    Engine * engine_;
 
-    Scene * scene;
+    Scene * scene_;
     
-    Node * cam_node;
+    Node * cam_node_;
 
-    InputTranslator * input_translator;
+    Input_Translator * input_translator_;
 
-    EditorCameraController * camera_controller;
+    Camera_Controller * camera_controller_;
 
-    InputMap * input_map;
+    Input_Map * input_map_;
 
-    bool m_draw_debug;
+    bool draw_debug_;
 
 };
 
-#endif
+}

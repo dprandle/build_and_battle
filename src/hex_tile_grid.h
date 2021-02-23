@@ -12,9 +12,9 @@ const int TILE_GRID_RESIZE_PAD = 8;
 
 namespace Urho3D
 {
-    class Scene;
-    class Node;
-}
+class Scene;
+class Node;
+} // namespace Urho3D
 
 class Tile_Occupier;
 
@@ -25,14 +25,14 @@ class Hex_Tile_Grid : public Urho3D::Component
   public:
     enum Quadrant_Index
     {
-        top_right_front,
-        top_left_front,
-        top_right_back,
-        top_left_back,
-        bottom_right_front,
-        bottom_left_front,
-        bottom_right_back,
-        bottom_left_back
+        TOP_RIGHT_FRONT,
+        TOP_LEFT_FRONT,
+        TOP_RIGHT_BACK,
+        TOP_LEFT_BACK,
+        BOTTOM_RIGHT_FRONT,
+        BOTTOM_LEFT_FRONT,
+        BOTTOM_RIGHT_BACK,
+        BOTTOM_LEFT_BACK
     };
 
     struct Tile_Item
@@ -55,8 +55,8 @@ class Hex_Tile_Grid : public Urho3D::Component
 
     struct Grid_Bounds
     {
-        ivec3 min_space;
-        ivec3 max_space;
+        ivec3 min_space_;
+        ivec3 max_space_;
     };
 
     struct Map_Index
@@ -80,23 +80,23 @@ class Hex_Tile_Grid : public Urho3D::Component
 
     ~Hex_Tile_Grid();
 
-    void add(const Tile_Item & item_, const fvec3 & pos_);
+    void add(const Tile_Item & item, const fvec3 & pos);
 
-    void add(const Tile_Item & item_, const ivec3 & space_, const fvec3 & origin_ = fvec3());
+    void add(const Tile_Item & item, const ivec3 & space, const fvec3 & origin = fvec3());
 
-    void add(const Tile_Item & item_,
+    void add(const Tile_Item & item,
              const Urho3D::Vector<ivec3> & spaces_,
-             const fvec3 & origin_ = fvec3());
+             const fvec3 & origin = fvec3());
 
-    const Tile_Space & at(const Map_Index & space_) const;
+    const Tile_Space & at(const Map_Index & space) const;
 
     void init();
 
     void release();
 
-    Tile_Space get(const fvec3 & pos_) const;
+    Tile_Space get(const fvec3 & pos) const;
 
-    Tile_Space get(const ivec3 & space_, const fvec3 & origin_ = fvec3()) const;
+    Tile_Space get(const ivec3 & space, const fvec3 & origin = fvec3()) const;
 
     Urho3D::Vector<Tile_Space> get_spaces_with_item(const Tile_Item & item);
 
@@ -117,33 +117,40 @@ class Hex_Tile_Grid : public Urho3D::Component
     int32_t max_x();
 
     bool
-    occupied(const fvec3 & pos_,
+    occupied(const fvec3 & pos,
              const Urho3D::Vector<Tile_Item> & allowed_items = Urho3D::Vector<Tile_Item>()) const;
 
     bool
-    occupied(const ivec3 & space_,
-             const fvec3 & origin_ = fvec3(),
+    occupied(const ivec3 & space,
+             const fvec3 & origin = fvec3(),
              const Urho3D::Vector<Tile_Item> & allowed_items = Urho3D::Vector<Tile_Item>()) const;
 
     Urho3D::Vector<int>
     occupied(const Urho3D::Vector<ivec3> & spaces_,
-             const fvec3 & origin_ = fvec3(),
+             const fvec3 & origin = fvec3(),
              const Urho3D::Vector<Tile_Item> & allowed_items = Urho3D::Vector<Tile_Item>()) const;
 
+    bool remove(const fvec3 & pos, const Tile_Item & tile_item = Tile_Item());
 
-    bool remove(const fvec3 & pos_, const Tile_Item & tile_item = Tile_Item());
-
-    bool remove(const ivec3 & space_, const fvec3 & origin_ = fvec3(),const Tile_Item & tile_item = Tile_Item());
-
-    Urho3D::Vector<int> remove(const Urho3D::Vector<ivec3> & spaces_,
-                               const fvec3 & origin_ = fvec3(), const Tile_Item & tile_item = Tile_Item());
-
-    bool remove(const fvec3 & pos_, const Urho3D::Vector<Tile_Item> & items = Urho3D::Vector<Tile_Item>());
-
-    bool remove(const ivec3 & space_, const fvec3 & origin_ = fvec3(), const Urho3D::Vector<Tile_Item> & items = Urho3D::Vector<Tile_Item>());
+    bool remove(const ivec3 & space,
+                const fvec3 & origin = fvec3(),
+                const Tile_Item & tile_item = Tile_Item());
 
     Urho3D::Vector<int> remove(const Urho3D::Vector<ivec3> & spaces_,
-                               const fvec3 & origin_ = fvec3(), const Urho3D::Vector<Tile_Item> & items = Urho3D::Vector<Tile_Item>());
+                               const fvec3 & origin = fvec3(),
+                               const Tile_Item & tile_item = Tile_Item());
+
+    bool remove(const fvec3 & pos,
+                const Urho3D::Vector<Tile_Item> & items = Urho3D::Vector<Tile_Item>());
+
+    bool remove(const ivec3 & space,
+                const fvec3 & origin = fvec3(),
+                const Urho3D::Vector<Tile_Item> & items = Urho3D::Vector<Tile_Item>());
+
+    Urho3D::Vector<int>
+    remove(const Urho3D::Vector<ivec3> & spaces_,
+           const fvec3 & origin = fvec3(),
+           const Urho3D::Vector<Tile_Item> & items = Urho3D::Vector<Tile_Item>());
 
     static int32_t index_x(float x_, bool offset_);
 
@@ -157,7 +164,7 @@ class Hex_Tile_Grid : public Urho3D::Component
 
     static Map_Index grid_to_index(const ivec3 & grid_);
 
-    static fvec3 grid_to_world(const ivec3 & grid_, const fvec3 & origin_ = fvec3());
+    static fvec3 grid_to_world(const ivec3 & grid_, const fvec3 & origin = fvec3());
 
     static ivec3 index_to_grid(const Map_Index & index_);
 
@@ -167,19 +174,16 @@ class Hex_Tile_Grid : public Urho3D::Component
 
     static void register_context(Urho3D::Context * context);
 
-    void handle_component_added(Urho3D::StringHash eventType, Urho3D::VariantMap & eventData);
+    void handle_component_added(Urho3D::StringHash event_type, Urho3D::VariantMap & event_data);
 
-    void handle_component_removed(Urho3D::StringHash eventType, Urho3D::VariantMap & eventData);
+    void handle_component_removed(Urho3D::StringHash event_type, Urho3D::VariantMap & event_data);
 
     void id_change(const Tile_Item & oldid, const Tile_Item newid);
 
     void DrawDebugGeometry(bool depth);
 
   protected:
-    
-    void OnSceneSet(Urho3D::Scene* scene) override;
-
-    
+    void OnSceneSet(Urho3D::Scene * scene) override;
 
   private:
     bool _check_bounds(const Map_Index & index_) const;
@@ -192,9 +196,9 @@ class Hex_Tile_Grid : public Urho3D::Component
 
     void _remove_component(Tile_Occupier * occ);
 
-    Tile_Space dummy_ret;
+    Tile_Space dummy_ret_;
 
-    Urho3D::HashSet<Tile_Occupier *> scene_occ_comps;
+    Urho3D::HashSet<Tile_Occupier *> scene_occ_comps_;
 
-    Map_World m_world_map;
+    Map_World world_map_;
 };

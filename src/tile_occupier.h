@@ -32,17 +32,26 @@ class Tile_Occupier : public Urho3D::Component
 
     void DrawDebugGeometry(bool depth);
 
+    void OnSetEnabled() override;
+
+
   protected:
-    
-    void OnNodeSet(Urho3D::Node* node) override;
+    void OnNodeSet(Urho3D::Node * node) override;
 
-    void OnMarkedDirty(Urho3D::Node* node) override;
-    
+    void OnMarkedDirty(Urho3D::Node * node) override;
+
+    void set_spaces(const Urho3D::VariantVector & spaces);
+
+    Urho3D::VariantVector get_spaces() const;
+
   private:
+    fvec3 old_position_;
 
-    fvec3 m_old_position;
+    bool draw_debug_;
 
-    bool draw_debug;
+    Urho3D::String scoobers;
 
-    Urho3D::Vector<ivec3> spaces;
+    int coolio;
+
+    Urho3D::Vector<ivec3> spaces_;
 };

@@ -24,48 +24,48 @@ Hex_Tile_Grid::~Hex_Tile_Grid()
 
 void Hex_Tile_Grid::release()
 {
-    m_world_map.Clear();
+    world_map_.Clear();
 }
 
 void Hex_Tile_Grid::init()
 {
-    m_world_map.Resize(QUADRANT_COUNT);
+    world_map_.Resize(QUADRANT_COUNT);
     for (uint32_t i = 0; i < QUADRANT_COUNT; ++i)
     {
-        m_world_map[i].Resize(DEFAULT_GRID_SIZE);
+        world_map_[i].Resize(DEFAULT_GRID_SIZE);
         for (uint32_t j = 0; j < DEFAULT_GRID_SIZE; ++j)
         {
-            m_world_map[i][j].Resize(DEFAULT_GRID_SIZE);
+            world_map_[i][j].Resize(DEFAULT_GRID_SIZE);
             for (uint32_t k = 0; k < DEFAULT_GRID_SIZE; ++k)
-                m_world_map[i][j][k].Resize(DEFAULT_GRID_SIZE);
+                world_map_[i][j][k].Resize(DEFAULT_GRID_SIZE);
         }
     }
 }
 
-void Hex_Tile_Grid::add(const Tile_Item & pItem, const fvec3 & pPos)
+void Hex_Tile_Grid::add(const Tile_Item & item, const fvec3 & pos)
 {
-    return add(pItem, ivec3(), pPos);
+    return add(item, ivec3(), pos);
 }
 
-void Hex_Tile_Grid::add(const Tile_Item & pItem, const ivec3 & pSpace, const fvec3 & pOrigin)
+void Hex_Tile_Grid::add(const Tile_Item & item, const ivec3 & space, const fvec3 & origin)
 {
-    ivec3 space = pSpace + world_to_grid(pOrigin);
-    Map_Index ind = grid_to_index(space);
+    ivec3 adjusted_space = space + world_to_grid(origin);
+    Map_Index ind = grid_to_index(adjusted_space);
 
-    // If space is out of bounds, allocate more memory to accomadate
+    // If adjusted_space is out of bounds, allocate more memory to accomadate
     if (!_check_bounds(ind))
         _resize_for_space(ind);
 
-    if (!m_world_map[ind.quad_index][ind.z_][ind.y_][ind.x_].Contains(pItem))
-        m_world_map[ind.quad_index][ind.z_][ind.y_][ind.x_].Push(pItem);
+    if (!world_map_[ind.quad_index][ind.z_][ind.y_][ind.x_].Contains(item))
+        world_map_[ind.quad_index][ind.z_][ind.y_][ind.x_].Push(item);
 }
 
-void Hex_Tile_Grid::add(const Tile_Item & pItem,
+void Hex_Tile_Grid::add(const Tile_Item & item,
                         const Urho3D::Vector<ivec3> & pSpaces,
-                        const fvec3 & pOrigin)
+                        const fvec3 & origin)
 {
     for (uint32_t i = 0; i < pSpaces.Size(); ++i)
-        add(pItem, pSpaces[i], pOrigin);
+        add(item, pSpaces[i], origin);
 }
 
 Urho3D::Vector<Hex_Tile_Grid::Tile_Space>
@@ -74,14 +74,14 @@ Hex_Tile_Grid::get_spaces_with_item(const Tile_Item & item)
     Urho3D::Vector<Hex_Tile_Grid::Tile_Space> ret;
     for (uint32_t i = 0; i < QUADRANT_COUNT; ++i)
     {
-        for (uint32_t z = 0; z < m_world_map[i].Size(); ++z)
+        for (uint32_t z = 0; z < world_map_[i].Size(); ++z)
         {
-            for (uint32_t y = 0; y < m_world_map[i][z].Size(); ++y)
+            for (uint32_t y = 0; y < world_map_[i][z].Size(); ++y)
             {
-                for (uint32_t x = 0; x < m_world_map[i][z][y].Size(); ++x)
+                for (uint32_t x = 0; x < world_map_[i][z][y].Size(); ++x)
                 {
-                    if (!m_world_map[i][z][y][x].Empty())
-                        ret.Push(m_world_map[i][z][y][x]);
+                    if (!world_map_[i][z][y][x].Empty())
+                        ret.Push(world_map_[i][z][y][x]);
                 }
             }
         }
@@ -89,29 +89,29 @@ Hex_Tile_Grid::get_spaces_with_item(const Tile_Item & item)
     return ret;
 }
 
-const Hex_Tile_Grid::Tile_Space & Hex_Tile_Grid::at(const Map_Index & pSpace) const
+const Hex_Tile_Grid::Tile_Space & Hex_Tile_Grid::at(const Map_Index & space) const
 {
-    if (!_check_bounds(pSpace))
-        return dummy_ret;
+    if (!_check_bounds(space))
+        return dummy_ret_;
 
-    return m_world_map[pSpace.quad_index][pSpace.z_][pSpace.y_][pSpace.x_];
+    return world_map_[space.quad_index][space.z_][space.y_][space.x_];
 }
 
-Hex_Tile_Grid::Tile_Space Hex_Tile_Grid::get(const fvec3 & pPos) const
+Hex_Tile_Grid::Tile_Space Hex_Tile_Grid::get(const fvec3 & pos) const
 {
-    return get(ivec3(), pPos);
+    return get(ivec3(), pos);
 }
 
-Hex_Tile_Grid::Tile_Space Hex_Tile_Grid::get(const ivec3 & pSpace, const fvec3 & pOrigin) const
+Hex_Tile_Grid::Tile_Space Hex_Tile_Grid::get(const ivec3 & space, const fvec3 & origin) const
 {
-    if (!occupied(pSpace, pOrigin)) // also will check bounds here and return false if out of bounds
+    if (!occupied(space, origin)) // also will check bounds here and return false if out of bounds
         return Tile_Space();
 
-    ivec3 space = pSpace + world_to_grid(pOrigin);
-    Map_Index ind = grid_to_index(space);
+    ivec3 adjusted_space = space + world_to_grid(origin);
+    Map_Index ind = grid_to_index(adjusted_space);
 
     // safe to raw index access because we know the indices are in bounds of the quadrant
-    return m_world_map[ind.quad_index][ind.z_][ind.y_][ind.x_];
+    return world_map_[ind.quad_index][ind.z_][ind.y_][ind.x_];
 }
 
 int32_t Hex_Tile_Grid::min_layer()
@@ -119,7 +119,7 @@ int32_t Hex_Tile_Grid::min_layer()
     int32_t minVal = 0;
     for (uint32_t i = 3; i < 8; ++i)
     {
-        int32_t size = static_cast<int32_t>(m_world_map[i].Size());
+        int32_t size = static_cast<int32_t>(world_map_[i].Size());
         size *= -1;
         if (size < minVal)
             minVal = size;
@@ -132,7 +132,7 @@ int32_t Hex_Tile_Grid::max_layer()
     int32_t maxVal = 0;
     for (uint32_t i = 0; i < 4; ++i)
     {
-        int32_t size = static_cast<int32_t>(m_world_map[i].Size());
+        int32_t size = static_cast<int32_t>(world_map_[i].Size());
         size -= 1;
         if (size > maxVal)
             maxVal = size;
@@ -144,30 +144,30 @@ int32_t Hex_Tile_Grid::min_y()
 {
     int32_t minY = 0;
 
-    for (uint32_t i = 0; i < m_world_map[2].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[2].Size(); ++i)
     {
-        int32_t lowestIndex = static_cast<int32_t>(m_world_map[2][i].Size()) * -1;
+        int32_t lowestIndex = static_cast<int32_t>(world_map_[2][i].Size()) * -1;
         if (lowestIndex < minY)
             minY = lowestIndex;
     }
 
-    for (uint32_t i = 0; i < m_world_map[3].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[3].Size(); ++i)
     {
-        int32_t lowestIndex = static_cast<int32_t>(m_world_map[3][i].Size()) * -1;
+        int32_t lowestIndex = static_cast<int32_t>(world_map_[3][i].Size()) * -1;
         if (lowestIndex < minY)
             minY = lowestIndex;
     }
 
-    for (uint32_t i = 0; i < m_world_map[6].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[6].Size(); ++i)
     {
-        int32_t lowestIndex = static_cast<int32_t>(m_world_map[6][i].Size()) * -1;
+        int32_t lowestIndex = static_cast<int32_t>(world_map_[6][i].Size()) * -1;
         if (lowestIndex < minY)
             minY = lowestIndex;
     }
 
-    for (uint32_t i = 0; i < m_world_map[7].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[7].Size(); ++i)
     {
-        int32_t lowestIndex = static_cast<int32_t>(m_world_map[7][i].Size()) * -1;
+        int32_t lowestIndex = static_cast<int32_t>(world_map_[7][i].Size()) * -1;
         if (lowestIndex < minY)
             minY = lowestIndex;
     }
@@ -178,30 +178,30 @@ int32_t Hex_Tile_Grid::max_y()
 {
     int32_t maxY = 0;
 
-    for (uint32_t i = 0; i < m_world_map[0].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[0].Size(); ++i)
     {
-        int32_t highestIndex = static_cast<int32_t>(m_world_map[0][i].Size()) - 1;
+        int32_t highestIndex = static_cast<int32_t>(world_map_[0][i].Size()) - 1;
         if (highestIndex > maxY)
             maxY = highestIndex;
     }
 
-    for (uint32_t i = 0; i < m_world_map[1].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[1].Size(); ++i)
     {
-        int32_t highestIndex = static_cast<int32_t>(m_world_map[1][i].Size()) - 1;
+        int32_t highestIndex = static_cast<int32_t>(world_map_[1][i].Size()) - 1;
         if (highestIndex > maxY)
             maxY = highestIndex;
     }
 
-    for (uint32_t i = 0; i < m_world_map[4].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[4].Size(); ++i)
     {
-        int32_t highestIndex = static_cast<int32_t>(m_world_map[4][i].Size()) - 1;
+        int32_t highestIndex = static_cast<int32_t>(world_map_[4][i].Size()) - 1;
         if (highestIndex > maxY)
             maxY = highestIndex;
     }
 
-    for (uint32_t i = 0; i < m_world_map[5].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[5].Size(); ++i)
     {
-        int32_t highestIndex = static_cast<int32_t>(m_world_map[5][i].Size()) - 1;
+        int32_t highestIndex = static_cast<int32_t>(world_map_[5][i].Size()) - 1;
         if (highestIndex > maxY)
             maxY = highestIndex;
     }
@@ -212,41 +212,41 @@ int32_t Hex_Tile_Grid::min_x()
 {
     int32_t minX = 0;
 
-    for (uint32_t i = 0; i < m_world_map[1].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[1].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[1][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[1][i].Size(); ++j)
         {
-            int32_t lowestIndex = static_cast<int32_t>(m_world_map[1][i][j].Size()) * -1;
+            int32_t lowestIndex = static_cast<int32_t>(world_map_[1][i][j].Size()) * -1;
             if (lowestIndex < minX)
                 minX = lowestIndex;
         }
     }
 
-    for (uint32_t i = 0; i < m_world_map[3].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[3].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[3][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[3][i].Size(); ++j)
         {
-            int32_t lowestIndex = static_cast<int32_t>(m_world_map[3][i][j].Size()) * -1;
+            int32_t lowestIndex = static_cast<int32_t>(world_map_[3][i][j].Size()) * -1;
             if (lowestIndex < minX)
                 minX = lowestIndex;
         }
     }
 
-    for (uint32_t i = 0; i < m_world_map[5].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[5].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[5][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[5][i].Size(); ++j)
         {
-            int32_t lowestIndex = static_cast<int32_t>(m_world_map[5][i][j].Size()) * -1;
+            int32_t lowestIndex = static_cast<int32_t>(world_map_[5][i][j].Size()) * -1;
             if (lowestIndex < minX)
                 minX = lowestIndex;
         }
     }
 
-    for (uint32_t i = 0; i < m_world_map[7].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[7].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[7][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[7][i].Size(); ++j)
         {
-            int32_t lowestIndex = static_cast<int32_t>(m_world_map[7][i][j].Size()) * -1;
+            int32_t lowestIndex = static_cast<int32_t>(world_map_[7][i][j].Size()) * -1;
             if (lowestIndex < minX)
                 minX = lowestIndex;
         }
@@ -258,41 +258,41 @@ int32_t Hex_Tile_Grid::max_x()
 {
     int32_t maxX = 0;
 
-    for (uint32_t i = 0; i < m_world_map[0].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[0].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[0][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[0][i].Size(); ++j)
         {
-            int32_t highestIndex = static_cast<int32_t>(m_world_map[0][i][j].Size()) - 1;
+            int32_t highestIndex = static_cast<int32_t>(world_map_[0][i][j].Size()) - 1;
             if (highestIndex > maxX)
                 maxX = highestIndex;
         }
     }
 
-    for (uint32_t i = 0; i < m_world_map[2].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[2].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[2][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[2][i].Size(); ++j)
         {
-            int32_t highestIndex = static_cast<int32_t>(m_world_map[2][i][j].Size()) - 1;
+            int32_t highestIndex = static_cast<int32_t>(world_map_[2][i][j].Size()) - 1;
             if (highestIndex > maxX)
                 maxX = highestIndex;
         }
     }
 
-    for (uint32_t i = 0; i < m_world_map[4].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[4].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[4][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[4][i].Size(); ++j)
         {
-            int32_t highestIndex = static_cast<int32_t>(m_world_map[4][i][j].Size()) - 1;
+            int32_t highestIndex = static_cast<int32_t>(world_map_[4][i][j].Size()) - 1;
             if (highestIndex > maxX)
                 maxX = highestIndex;
         }
     }
 
-    for (uint32_t i = 0; i < m_world_map[6].Size(); ++i)
+    for (uint32_t i = 0; i < world_map_[6].Size(); ++i)
     {
-        for (uint32_t j = 0; j < m_world_map[6][i].Size(); ++j)
+        for (uint32_t j = 0; j < world_map_[6][i].Size(); ++j)
         {
-            int32_t highestIndex = static_cast<int32_t>(m_world_map[6][i][j].Size()) - 1;
+            int32_t highestIndex = static_cast<int32_t>(world_map_[6][i][j].Size()) - 1;
             if (highestIndex > maxX)
                 maxX = highestIndex;
         }
@@ -305,28 +305,28 @@ Hex_Tile_Grid::Grid_Bounds Hex_Tile_Grid::occupied_bounds()
     Grid_Bounds g;
     for (uint32_t i = 0; i < 8; ++i)
     {
-        for (uint32_t z = 0; z < m_world_map[i].Size(); ++z)
+        for (uint32_t z = 0; z < world_map_[i].Size(); ++z)
         {
-            for (uint32_t y = 0; y < m_world_map[i][z].Size(); ++y)
+            for (uint32_t y = 0; y < world_map_[i][z].Size(); ++y)
             {
-                for (uint32_t x = 0; x < m_world_map[i][z][y].Size(); ++x)
+                for (uint32_t x = 0; x < world_map_[i][z][y].Size(); ++x)
                 {
-                    if (!m_world_map[i][z][y][x].Empty())
+                    if (!world_map_[i][z][y][x].Empty())
                     {
                         ivec3 gridPos = index_to_grid(Map_Index(i, x, y, z));
-                        if (gridPos.x_ > g.max_space.x_)
-                            g.max_space.x_ = gridPos.x_;
-                        if (gridPos.y_ > g.max_space.y_)
-                            g.max_space.y_ = gridPos.y_;
-                        if (gridPos.z_ > g.max_space.z_)
-                            g.max_space.z_ = gridPos.z_;
+                        if (gridPos.x_ > g.max_space_.x_)
+                            g.max_space_.x_ = gridPos.x_;
+                        if (gridPos.y_ > g.max_space_.y_)
+                            g.max_space_.y_ = gridPos.y_;
+                        if (gridPos.z_ > g.max_space_.z_)
+                            g.max_space_.z_ = gridPos.z_;
 
-                        if (gridPos.x_ < g.min_space.x_)
-                            g.min_space.x_ = gridPos.x_;
-                        if (gridPos.y_ < g.min_space.y_)
-                            g.min_space.y_ = gridPos.y_;
-                        if (gridPos.z_ < g.min_space.z_)
-                            g.min_space.z_ = gridPos.z_;
+                        if (gridPos.x_ < g.min_space_.x_)
+                            g.min_space_.x_ = gridPos.x_;
+                        if (gridPos.y_ < g.min_space_.y_)
+                            g.min_space_.y_ = gridPos.y_;
+                        if (gridPos.z_ < g.min_space_.z_)
+                            g.min_space_.z_ = gridPos.z_;
                     }
                 }
             }
@@ -335,24 +335,23 @@ Hex_Tile_Grid::Grid_Bounds Hex_Tile_Grid::occupied_bounds()
     return g;
 }
 
-bool Hex_Tile_Grid::occupied(const fvec3 & pPos,
+bool Hex_Tile_Grid::occupied(const fvec3 & pos,
                              const Urho3D::Vector<Tile_Item> & allowed_items) const
 {
-    return occupied(ivec3(), pPos, allowed_items);
+    return occupied(ivec3(), pos, allowed_items);
 }
 
-bool Hex_Tile_Grid::occupied(const ivec3 & pSpace,
-                             const fvec3 & pOrigin,
+bool Hex_Tile_Grid::occupied(const ivec3 & space,
+                             const fvec3 & origin,
                              const Urho3D::Vector<Tile_Item> & allowed_items) const
 {
-    ivec3 space = pSpace + world_to_grid(pOrigin);
-    Map_Index ind = grid_to_index(space);
+    ivec3 adjusted_space = space + world_to_grid(origin);
+    Map_Index ind = grid_to_index(adjusted_space);
 
     if (!_check_bounds(ind))
         return false;
 
-    const Urho3D::Vector<Tile_Item> & item_vec =
-        m_world_map[ind.quad_index][ind.z_][ind.y_][ind.x_];
+    const Urho3D::Vector<Tile_Item> & item_vec = world_map_[ind.quad_index][ind.z_][ind.y_][ind.x_];
     for (int i = 0; i < item_vec.Size(); ++i)
     {
         if (!allowed_items.Contains(item_vec[i]))
@@ -362,45 +361,45 @@ bool Hex_Tile_Grid::occupied(const ivec3 & pSpace,
 }
 
 Urho3D::Vector<int> Hex_Tile_Grid::occupied(const Urho3D::Vector<ivec3> & pSpaces,
-                                            const fvec3 & pOrigin,
+                                            const fvec3 & origin,
                                             const Urho3D::Vector<Tile_Item> & allowed_items) const
 {
     Urho3D::Vector<int> ret;
     for (uint32_t i = 0; i < pSpaces.Size(); ++i)
     {
-        if (occupied(pSpaces[i], pOrigin, allowed_items))
+        if (occupied(pSpaces[i], origin, allowed_items))
             ret.Push(i);
     }
     return ret;
 }
 
-bool Hex_Tile_Grid::remove(const fvec3 & pPos, const Urho3D::Vector<Tile_Item> & items)
+bool Hex_Tile_Grid::remove(const fvec3 & pos, const Urho3D::Vector<Tile_Item> & items)
 {
-    return remove(ivec3(), pPos, items);
+    return remove(ivec3(), pos, items);
 }
 
-bool Hex_Tile_Grid::remove(const ivec3 & pSpace,
-                           const fvec3 & pOrigin,
+bool Hex_Tile_Grid::remove(const ivec3 & space,
+                           const fvec3 & origin,
                            const Urho3D::Vector<Tile_Item> & items)
 {
     bool ret = false;
 
-    ivec3 space = pSpace + world_to_grid(pOrigin);
-    Map_Index ind = grid_to_index(space);
+    ivec3 adjusted_space = space + world_to_grid(origin);
+    Map_Index ind = grid_to_index(adjusted_space);
 
     if (!_check_bounds(ind))
         return ret;
 
-    Tile_Space & tile_space = m_world_map[ind.quad_index][ind.z_][ind.y_][ind.x_];
+    Tile_Space & tile_space = world_map_[ind.quad_index][ind.z_][ind.y_][ind.x_];
 
     if (items.Empty())
         tile_space.Clear();
     else
     {
-        for(auto & item : items)
+        for (auto & item : items)
             ret = ret || tile_space.Remove(item);
     }
-        
+
     return ret;
 }
 
@@ -431,16 +430,16 @@ Urho3D::Vector<int> Hex_Tile_Grid::remove(const Urho3D::Vector<ivec3> & spaces_,
 }
 
 /*!
-Remove multiple tiles from the grid - each space will be shifted by the grid position of the origin
+Remove multiple tiles from the grid - each adjusted_space will be shifted by the grid position of the origin
 */
 Urho3D::Vector<int> Hex_Tile_Grid::remove(const Urho3D::Vector<ivec3> & pSpaces,
-                                          const fvec3 & pOrigin,
+                                          const fvec3 & origin,
                                           const Urho3D::Vector<Tile_Item> & items)
 {
     Urho3D::Vector<int> ret;
     for (uint32_t i = 0; i < pSpaces.Size(); ++i)
     {
-        if (remove(pSpaces[i], pOrigin, items))
+        if (remove(pSpaces[i], origin, items))
             ret.Push(i);
     }
     return ret;
@@ -452,14 +451,14 @@ void Hex_Tile_Grid::id_change(const Tile_Item & oldid, const Tile_Item newid)
     Grid_Bounds g;
     for (uint32_t i = 0; i < QUADRANT_COUNT; ++i)
     {
-        for (uint32_t z = 0; z < m_world_map[i].Size(); ++z)
+        for (uint32_t z = 0; z < world_map_[i].Size(); ++z)
         {
-            for (uint32_t y = 0; y < m_world_map[i][z].Size(); ++y)
+            for (uint32_t y = 0; y < world_map_[i][z].Size(); ++y)
             {
-                for (uint32_t x = 0; x < m_world_map[i][z][y].Size(); ++x)
+                for (uint32_t x = 0; x < world_map_[i][z][y].Size(); ++x)
                 {
-                    m_world_map[i][z][y][x].Remove(oldid);
-                    m_world_map[i][z][y][x].Push(newid);
+                    world_map_[i][z][y][x].Remove(oldid);
+                    world_map_[i][z][y][x].Push(newid);
                 }
             }
         }
@@ -547,41 +546,42 @@ int32_t Hex_Tile_Grid::index_z(float pZ)
     return int32_t(std::round(pZ / Z_GRID));
 }
 
-Hex_Tile_Grid::Map_Index Hex_Tile_Grid::grid_to_index(const ivec3 & pSpace)
+Hex_Tile_Grid::Map_Index Hex_Tile_Grid::grid_to_index(const ivec3 & space)
 {
     Map_Index index;
-    if (pSpace.z_ < 0)
+    if (space.z_ < 0)
     {
         index.quad_index = Quadrant_Index(index.quad_index + 4);
-        index.z_ = -1 * pSpace.z_;
+        index.z_ = -1 * space.z_;
         index.z_ -= 1;
     }
     else
-        index.z_ = pSpace.z_;
-    if (pSpace.y_ < 0)
+        index.z_ = space.z_;
+    if (space.y_ < 0)
     {
         index.quad_index = Quadrant_Index(index.quad_index + 2);
-        index.y_ = -1 * pSpace.y_;
+        index.y_ = -1 * space.y_;
         index.y_ -= 1;
     }
     else
-        index.y_ = pSpace.y_;
-    if (pSpace.x_ < 0)
+        index.y_ = space.y_;
+    if (space.x_ < 0)
     {
         index.quad_index = Quadrant_Index(index.quad_index + 1);
-        index.x_ = -1 * pSpace.x_;
+        index.x_ = -1 * space.x_;
         index.x_ -= 1;
     }
     else
-        index.x_ = pSpace.x_;
+        index.x_ = space.x_;
     return index;
 }
 
-fvec3 Hex_Tile_Grid::grid_to_world(const ivec3 & pSpace, const fvec3 & pOrigin)
+fvec3 Hex_Tile_Grid::grid_to_world(const ivec3 & space, const fvec3 & origin)
 {
-    ivec3 space = pSpace + world_to_grid(pOrigin);
-    fvec3 pos(space.x_ * 2.0f * X_GRID, space.y_ * Y_GRID, space.z_ * Z_GRID);
-    if (space.y_ % 2 != 0)
+    ivec3 adjusted_space = space + world_to_grid(origin);
+    fvec3 pos(
+        adjusted_space.x_ * 2.0f * X_GRID, adjusted_space.y_ * Y_GRID, adjusted_space.z_ * Z_GRID);
+    if (adjusted_space.y_ % 2 != 0)
         pos.x_ += X_GRID;
     return pos;
 }
@@ -636,13 +636,13 @@ ivec3 Hex_Tile_Grid::world_to_grid(const fvec3 & pWorldPos)
 
 bool Hex_Tile_Grid::_check_bounds(const Map_Index & pIndex) const
 {
-    if (pIndex.z_ >= m_world_map[pIndex.quad_index].Size())
+    if (pIndex.z_ >= world_map_[pIndex.quad_index].Size())
         return false;
 
-    if (pIndex.y_ >= m_world_map[pIndex.quad_index][pIndex.z_].Size())
+    if (pIndex.y_ >= world_map_[pIndex.quad_index][pIndex.z_].Size())
         return false;
 
-    if (pIndex.x_ >= m_world_map[pIndex.quad_index][pIndex.z_][pIndex.y_].Size())
+    if (pIndex.x_ >= world_map_[pIndex.quad_index][pIndex.z_][pIndex.y_].Size())
         return false;
 
     return true;
@@ -653,39 +653,39 @@ void Hex_Tile_Grid::_resize_for_space(const Map_Index & pIndex)
     uint32_t old_size = 0;
     uint32_t new_size = 0;
 
-    old_size = m_world_map[pIndex.quad_index].Size();
+    old_size = world_map_[pIndex.quad_index].Size();
     if (pIndex.z_ >= old_size)
     {
         new_size = pIndex.z_ + TILE_GRID_RESIZE_PAD;
-        m_world_map[pIndex.quad_index].Resize(new_size);
+        world_map_[pIndex.quad_index].Resize(new_size);
         iout << "Resizing tile grid z layer from" << old_size << "to" << new_size;
 
         //Resize the x and y dimensions for all new layers
-        for (uint32_t i = old_size-1; i < new_size; ++i)
+        for (uint32_t i = old_size - 1; i < new_size; ++i)
         {
-            m_world_map[pIndex.quad_index][i].Resize(DEFAULT_GRID_SIZE);
+            world_map_[pIndex.quad_index][i].Resize(DEFAULT_GRID_SIZE);
             for (uint32_t j = 0; j < DEFAULT_GRID_SIZE; ++j)
-                m_world_map[pIndex.quad_index][i][j].Resize(DEFAULT_GRID_SIZE);
+                world_map_[pIndex.quad_index][i][j].Resize(DEFAULT_GRID_SIZE);
         }
     }
 
-    old_size = m_world_map[pIndex.quad_index][pIndex.z_].Size();
+    old_size = world_map_[pIndex.quad_index][pIndex.z_].Size();
     if (pIndex.y_ >= old_size)
     {
         new_size = pIndex.y_ + TILE_GRID_RESIZE_PAD;
-        m_world_map[pIndex.quad_index][pIndex.z_].Resize(new_size);
+        world_map_[pIndex.quad_index][pIndex.z_].Resize(new_size);
         iout << "Resizing tile grid y layer from" << old_size << "to" << new_size;
 
         // Resize all the x dimensions for the current layer/row
-        for (uint32_t i = old_size-1; i < new_size; ++i)
-            m_world_map[pIndex.quad_index][pIndex.z_][i].Resize(DEFAULT_GRID_SIZE);
+        for (uint32_t i = old_size - 1; i < new_size; ++i)
+            world_map_[pIndex.quad_index][pIndex.z_][i].Resize(DEFAULT_GRID_SIZE);
     }
 
-    old_size = m_world_map[pIndex.quad_index][pIndex.z_][pIndex.y_].Size();
+    old_size = world_map_[pIndex.quad_index][pIndex.z_][pIndex.y_].Size();
     if (pIndex.x_ >= old_size)
     {
         new_size = pIndex.x_ + TILE_GRID_RESIZE_PAD;
-        m_world_map[pIndex.quad_index][pIndex.z_][pIndex.y_].Resize(new_size);
+        world_map_[pIndex.quad_index][pIndex.z_][pIndex.y_].Resize(new_size);
         iout << "Resizing tile grid x layer from" << old_size << "to" << new_size;
     }
 }
@@ -698,7 +698,7 @@ void Hex_Tile_Grid::register_context(Urho3D::Context * context)
 
 const Hex_Tile_Grid::Tile_Space & Hex_Tile_Grid::_get_id(const Map_Index & pIndex)
 {
-    return m_world_map[pIndex.quad_index][pIndex.z_][pIndex.y_][pIndex.x_];
+    return world_map_[pIndex.quad_index][pIndex.z_][pIndex.y_][pIndex.x_];
 }
 
 void Hex_Tile_Grid::handle_component_added(Urho3D::StringHash eventType,
@@ -725,13 +725,13 @@ void Hex_Tile_Grid::handle_component_removed(Urho3D::StringHash eventType,
 
 void Hex_Tile_Grid::_add_component(Tile_Occupier * occ)
 {
-    scene_occ_comps.Insert(occ);
+    scene_occ_comps_.Insert(occ);
     add(Tile_Item(occ->GetNode()->GetID()), occ->tile_spaces(), occ->GetNode()->GetPosition());
 }
 
 void Hex_Tile_Grid::_remove_component(Tile_Occupier * occ)
 {
-    scene_occ_comps.Erase(occ);
+    scene_occ_comps_.Erase(occ);
     fvec3 fpos = occ->GetNode()->GetPosition();
     remove(occ->tile_spaces(), fpos, Tile_Item(occ->GetNode()->GetID()));
 }
@@ -748,13 +748,13 @@ void Hex_Tile_Grid::DrawDebugGeometry(bool depth)
 
     for (uint32_t i = 0; i < QUADRANT_COUNT; ++i)
     {
-        for (uint32_t z = 0; z < m_world_map[i].Size(); ++z)
+        for (uint32_t z = 0; z < world_map_[i].Size(); ++z)
         {
-            for (uint32_t y = 0; y < m_world_map[i][z].Size(); ++y)
+            for (uint32_t y = 0; y < world_map_[i][z].Size(); ++y)
             {
-                for (uint32_t x = 0; x < m_world_map[i][z][y].Size(); ++x)
+                for (uint32_t x = 0; x < world_map_[i][z][y].Size(); ++x)
                 {
-                    for (int item_ind = 0; item_ind < m_world_map[i][z][y][x].Size(); ++item_ind)
+                    for (int item_ind = 0; item_ind < world_map_[i][z][y][x].Size(); ++item_ind)
                     {
                         BoundingBox bb;
                         Map_Index ind;
@@ -771,8 +771,8 @@ void Hex_Tile_Grid::DrawDebugGeometry(bool depth)
         }
     }
 
-    auto occ_iter = scene_occ_comps.Begin();
-    while (occ_iter != scene_occ_comps.End())
+    auto occ_iter = scene_occ_comps_.Begin();
+    while (occ_iter != scene_occ_comps_.End())
     {
         if ((*occ_iter)->debug_enabled())
             (*occ_iter)->DrawDebugGeometry(depth);
